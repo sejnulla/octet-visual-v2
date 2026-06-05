@@ -116,6 +116,7 @@ hr.div{border:none;border-top:1px solid #e8e8e8;margin:6px 0}
       <div class="tabs">
         <div class="tab on" id="ti" onclick="switchInput('img')">Image</div>
         <div class="tab" id="tv" onclick="switchInput('vid')">Video</div>
+        <div class="tab" id="tp" onclick="switchInput('pat')">Pattern</div>
       </div>
       <div id="ii">
         <div class="drop" onclick="document.getElementById('if').click()">Click or drop image</div>
@@ -134,6 +135,36 @@ hr.div{border:none;border-top:1px solid #e8e8e8;margin:6px 0}
         </div>
         <button class="btn" style="margin-top:2px" onclick="processFrame()">Process current frame</button>
       </div>
+
+      <!-- Pattern input panel -->
+      <div id="ip" style="display:none">
+        <div class="field"><label class="lbl">Type</label>
+          <select id="pat-type"><option value="rings">Concentric rings</option></select>
+        </div>
+        <div class="field"><label class="lbl">Speed</label>
+          <div class="row">
+            <input type="range" id="pat-speed" min="0" max="3" step="0.05" value="0.5" oninput="sn(this,'npat-speed')">
+            <input type="number" id="npat-speed" min="0" max="3" step="0.05" value="0.5" oninput="sr(this,'pat-speed')" style="width:44px">
+          </div>
+        </div>
+        <div class="field"><label class="lbl">Ring spacing</label>
+          <div class="row">
+            <input type="range" id="pat-spacing" min="10" max="150" step="1" value="60" oninput="sn(this,'npat-spacing')">
+            <input type="number" id="npat-spacing" min="10" max="150" step="1" value="60" oninput="sr(this,'pat-spacing')" style="width:44px">
+          </div>
+        </div>
+        <div class="field"><label class="lbl">Sharpness</label>
+          <div class="row">
+            <input type="range" id="pat-sharp" min="0" max="95" step="1" value="30" oninput="sn(this,'npat-sharp')">
+            <input type="number" id="npat-sharp" min="0" max="95" step="1" value="30" oninput="sr(this,'pat-sharp')" style="width:44px">
+          </div>
+        </div>
+        <div class="tog-row" style="margin-top:4px">
+          <span style="font-size:11px">Inward</span>
+          <label class="tog"><input type="checkbox" id="pat-dir"><span class="ts"></span></label>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -296,6 +327,52 @@ let offC = null, offX = null;
 let scat = {};         // { s:[], m:[], h:[] }
 let liveRAF = null;
 let txtLayers = [], selTxt = -1, customFont = null;
+
+// ── Pattern canvas ────────────────────────────────────────────────────────────
+const PAT_RES = 256;  // internal resolution — scaled to output by drawImage
+let patC = null, patX = null, patStart = null;
+
+function ensurePat() {
+  if (!patC) {
+    patC = document.createElement('canvas');
+    patC.width = PAT_RES; patC.height = PAT_RES;
+    patX = patC.getContext('2d', { willReadFrequently: true });
+  }
+}
+
+function drawPattern(ts) {
+  if (patStart === null) patStart = ts;
+  const t = (ts - patStart) / 1000;
+  ensurePat();
+  const W = PAT_RES, H = PAT_RES;
+  const cx = W / 2, cy = H / 2;
+  const speed   = parseFloat(gv('pat-speed'))   || 0.5;
+  const spacing = parseFloat(gv('pat-spacing')) || 60;
+  const sharp   = clamp(parseFloat(gv('pat-sharp')) || 30, 0, 95) / 100;
+  const inward  = document.getElementById('pat-dir')?.checked;
+  const phase   = t * speed * (inward ? -1 : 1);
+  const exp     = 1 / (1 - sharp);
+
+  const img = patX.createImageData(W, H);
+  const d   = img.data;
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const dx = x - cx, dy = y - cy;
+      const r  = Math.sqrt(dx * dx + dy * dy);
+      // position within one ring cycle (0..1), animated by phase
+      const norm = ((r / spacing - phase) % 1 + 1) % 1;
+      // sine wave, then sharpened with a power curve
+      let v = (Math.sin(norm * Math.PI * 2) + 1) * 0.5;
+      v = v > 0.5
+        ? 1 - Math.pow(2 * (1 - v), exp) * 0.5
+        : Math.pow(2 * v, exp) * 0.5;
+      const b = v * 255 | 0;
+      const i = (y * W + x) * 4;
+      d[i] = d[i+1] = d[i+2] = b; d[i+3] = 255;
+    }
+  }
+  patX.putImageData(img, 0, 0);
+}
 let cvScale = 1;
 
 // ══ Build layer UI ════════════════════════════════════════════════════════════
@@ -603,11 +680,20 @@ function render() {
 
 // ══ Input ═════════════════════════════════════════════════════════════════════
 function switchInput(t) {
-  inType=t;
-  document.getElementById('ti').classList.toggle('on',t==='img');
-  document.getElementById('tv').classList.toggle('on',t==='vid');
-  document.getElementById('ii').style.display=t==='img'?'block':'none';
-  document.getElementById('iv').style.display=t==='vid'?'block':'none';
+  if (inType === 'pat' && t !== 'pat') stopLive(); // stop pattern loop when leaving
+  inType = t;
+  document.getElementById('ti').classList.toggle('on', t==='img');
+  document.getElementById('tv').classList.toggle('on', t==='vid');
+  document.getElementById('tp').classList.toggle('on', t==='pat');
+  document.getElementById('ii').style.display = t==='img' ? 'block' : 'none';
+  document.getElementById('iv').style.display = t==='vid' ? 'block' : 'none';
+  document.getElementById('ip').style.display = t==='pat' ? 'block' : 'none';
+  if (t === 'pat') {
+    stopLive();
+    ensurePat();
+    src = patC; offC = null; patStart = null;
+    startLive();
+  }
 }
 
 function loadImg(e) {
@@ -663,17 +749,23 @@ function onLiveToggle() { document.getElementById('live').checked ? startLive() 
 
 function startLive() {
   if (liveRAF) return;
-  const loop=()=>{
-    // Only re-render when video is actively playing — scatter stays cached, only pixel colours update
-    if (src?.tagName==='VIDEO' && !src.paused && !src.ended) render();
-    liveRAF=requestAnimationFrame(loop);
+  const loop = (ts) => {
+    if (inType === 'pat') {
+      // Pattern: always redraw, then render
+      drawPattern(ts);
+      render();
+    } else if (src?.tagName === 'VIDEO' && !src.paused && !src.ended) {
+      // Video: only render when playing — scatter stays cached, only pixel colours update
+      render();
+    }
+    liveRAF = requestAnimationFrame(loop);
   };
-  liveRAF=requestAnimationFrame(loop);
+  liveRAF = requestAnimationFrame(loop);
 }
 
 function stopLive() {
-  if(liveRAF){cancelAnimationFrame(liveRAF);liveRAF=null;}
-  document.getElementById('live').checked=false;
+  if (liveRAF) { cancelAnimationFrame(liveRAF); liveRAF = null; }
+  if (inType !== 'pat') document.getElementById('live').checked = false;
 }
 
 // Drop onto canvas
