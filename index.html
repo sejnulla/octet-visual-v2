@@ -2,335 +2,691 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Non-grid Pixelation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Octet — Cryptographic Proof of Presence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400&family=IBM+Plex+Mono:ital,wght@0,300;0,400;1,300&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#e8e8e8;display:flex;height:100vh;overflow:hidden;font-size:12px}
+/* ── Reset + base ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-#canvas-area{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
-#canvas-wrapper{position:relative;box-shadow:0 4px 32px rgba(0,0,0,.2)}
-#output-canvas{display:block}
-.text-ov{position:absolute;cursor:move;user-select:none;white-space:nowrap;line-height:1.1}
-.text-ov.sel{outline:2px dashed rgba(255,255,255,.7)}
+:root {
+  --bg:     #f5f1ea;
+  --ink:    #0d0d0c;
+  --dim:    #5b574e;
+  --brd:    rgba(13,13,12,0.08);
+  --mono:   'IBM Plex Mono', monospace;
+  --jet:    'JetBrains Mono', monospace;
+  --sans:   'IBM Plex Sans', sans-serif;
+  --hdr:    59px;
+}
 
-#btm{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);background:#fff;border-radius:8px;padding:5px 12px;display:flex;gap:6px;align-items:center;font-size:12px;color:#333;box-shadow:0 2px 8px rgba(0,0,0,.12)}
-#btm input[type=number]{width:52px;border:none;font-size:12px;text-align:right;outline:none}
-#btm span{color:#999}
-#btm select{font-size:11px;border:1px solid #ccc;border-radius:4px;padding:2px 5px}
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
 
-/* Panel */
-#panel{width:258px;background:#f4f4f4;border-left:1px solid #ddd;overflow-y:auto;flex-shrink:0;padding-bottom:40px}
-#pt{padding:10px 14px 8px;font-size:13px;font-weight:700;color:#111;border-bottom:1px solid #e0e0e0;display:flex;justify-content:space-between;align-items:center}
-#pt button{font-size:10px;background:none;border:1px solid #bbb;border-radius:4px;padding:2px 8px;cursor:pointer;color:#555}
+/* ── Header ───────────────────────────────────────────────────── */
+#hdr {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  height: var(--hdr);
+  background: var(--bg);
+  border-bottom: 1px solid var(--brd);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+}
 
-.sec{border-bottom:1px solid #e0e0e0}
-.sh{padding:8px 14px;font-size:11.5px;font-weight:600;color:#222;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:#f4f4f4;user-select:none}
-.sh:hover{background:#eee}
-.sh .ar{font-size:9px;opacity:.55;transition:transform .15s}
-.sh.op .ar{transform:rotate(180deg)}
-.sb{padding:10px 14px;background:#fff;display:none}
-.sb.op{display:block}
+.logo {
+  font-family: var(--jet);
+  font-weight: 400;
+  font-size: 13.5px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  text-decoration: none;
+}
 
-.field{margin-bottom:8px}
-.lbl{display:block;font-size:10.5px;color:#666;margin-bottom:3px;font-weight:500}
-.row{display:flex;align-items:center;gap:5px}
-input[type=range]{flex:1;height:16px;accent-color:#222;cursor:pointer;min-width:0}
-input[type=number]{width:44px;border:1px solid #ccc;border-radius:4px;padding:2px 4px;font-size:11px;text-align:right}
-input[type=color]{width:24px;height:20px;border:1px solid #ccc;border-radius:3px;padding:1px;cursor:pointer;flex-shrink:0}
-input[type=text]{width:100%;border:1px solid #ccc;border-radius:4px;padding:4px 7px;font-size:11px}
-select{width:100%;border:1px solid #ccc;border-radius:4px;padding:3px 5px;font-size:11px;background:#fff}
+nav { display: flex; gap: 24px; }
+nav a {
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--dim);
+  text-decoration: none;
+  letter-spacing: 0.025em;
+  transition: color 0.12s;
+}
+nav a:hover { color: var(--ink); }
 
-.swatch{height:18px;border-radius:4px;margin:4px 0;border:1px solid rgba(0,0,0,.08)}
+/* ── Two-column 50/50 ─────────────────────────────────────────── */
+#main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: calc(100vh - var(--hdr));
+  align-items: start;
+}
 
-.tabs{display:flex;border-bottom:1px solid #e0e0e0;margin-bottom:9px}
-.tab{flex:1;padding:5px;text-align:center;font-size:11px;cursor:pointer;color:#888;border-bottom:2px solid transparent}
-.tab.on{color:#111;border-bottom-color:#111;font-weight:600}
+/* ── Content column ───────────────────────────────────────────── */
+#content {
+  border-right: 1px solid var(--brd);
+  padding: 0 0 160px;
+}
 
-.drop{border:2px dashed #ccc;border-radius:5px;padding:9px;text-align:center;font-size:11px;color:#888;cursor:pointer;transition:border-color .15s}
-.drop:hover{border-color:#888}
-.thumb{width:100%;border-radius:3px;margin-top:5px;display:none}
-video#vp{width:100%;border-radius:3px;margin-top:5px;display:none;max-height:110px;object-fit:contain;background:#111}
+/* ── Canvas dock — sticky right ───────────────────────────────── */
+#canvas-dock {
+  position: sticky;
+  top: var(--hdr);
+  height: calc(100vh - var(--hdr));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
 
-.tog-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
-.tog{position:relative;width:30px;height:16px;flex-shrink:0}
-.tog input{opacity:0;width:0;height:0}
-.ts{position:absolute;inset:0;background:#ccc;border-radius:8px;cursor:pointer;transition:background .15s}
-.ts:before{content:'';position:absolute;width:12px;height:12px;left:2px;top:2px;background:#fff;border-radius:50%;transition:transform .15s}
-.tog input:checked+.ts{background:#222}
-.tog input:checked+.ts:before{transform:translateX(14px)}
+/* Canvas: responsive fill, 4:5 ratio, renders at 440×550 internally */
+#cv {
+  display: block;
+  width: min(520px, 100%);
+  aspect-ratio: 4 / 5;
+  background: #111;
+}
 
-.chips{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:7px}
-.chip{padding:2px 7px;border-radius:9px;border:1px solid #ccc;font-size:10px;cursor:pointer;background:#fff;color:#555;transition:all .1s}
-.chip.on{background:#111;color:#fff;border-color:#111}
+/* ── Section padding ──────────────────────────────────────────── */
+.section {
+  padding: 80px 56px;
+  border-bottom: 1px solid var(--brd);
+}
+.section:last-child { border-bottom: none; }
 
-.btn{display:block;width:100%;padding:6px;font-size:11px;border-radius:5px;border:1px solid #ccc;background:#f0f0f0;cursor:pointer;text-align:center;margin-bottom:5px}
-.btn:hover{background:#e5e5e5}
-.btn.pri{background:#111;color:#fff;border-color:#111;font-size:12px;padding:8px}
-.btn.pri:hover{background:#333}
-.btn.del{border-color:#d33;color:#d33}
-.btn.del:hover{background:#fff5f5}
-.btn.sm{font-size:10px;padding:4px 8px;width:auto;display:inline-block;margin:0}
+/* ── Section label row ────────────────────────────────────────── */
+.sec-label {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  font-family: var(--mono);
+  font-weight: 300;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  color: var(--dim);
+  margin-bottom: 28px;
+}
+.sec-label-rule {
+  display: inline-block;
+  width: 40px;
+  height: 2px;
+  background: var(--ink);
+  opacity: 0.18;
+  margin-right: 14px;
+  flex-shrink: 0;
+}
 
-.ti{padding:4px 8px;border:1px solid #ddd;border-radius:4px;margin-bottom:4px;cursor:pointer;background:#fafafa;font-size:11px}
-.ti.on{border-color:#111;background:#f0f0f0}
+/* ── Hero ─────────────────────────────────────────────────────── */
+.hero-heading {
+  font-family: var(--jet);
+  font-weight: 300;
+  font-size: clamp(40px, 5vw, 68px);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin-bottom: 40px;
+}
 
-/* Presets */
-.preset-row{display:flex;gap:4px;margin-bottom:6px}
-.preset-row select{flex:1}
+.hero-body {
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: var(--dim);
+  max-width: 480px;
+}
 
-.live-dot{display:inline-block;width:6px;height:6px;background:#e55;border-radius:50%;margin-right:4px;animation:blink 1s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+/* ── Workload intro ───────────────────────────────────────────── */
+.wl-num {
+  font-family: var(--mono);
+  font-weight: 300;
+  font-size: 9.5px;
+  color: var(--dim);
+  margin-right: 6px;
+}
 
-hr.div{border:none;border-top:1px solid #e8e8e8;margin:6px 0}
-.sh-right{display:flex;align-items:center;gap:7px;flex-shrink:0}
-.sh.off{opacity:0.42}
+.wl-heading {
+  font-family: var(--jet);
+  font-weight: 300;
+  font-size: clamp(28px, 3.5vw, 48px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-bottom: 28px;
+}
+
+.wl-intro {
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--dim);
+  margin-bottom: 48px;
+  padding-bottom: 48px;
+  border-bottom: 1px solid var(--brd);
+}
+
+/* ── Sub-section ──────────────────────────────────────────────── */
+.sub {
+  padding: 40px 0;
+  border-bottom: 1px solid var(--brd);
+}
+.sub:last-child { border-bottom: none; }
+
+.sub-num {
+  font-family: var(--mono);
+  font-weight: 300;
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  color: var(--dim);
+  margin-bottom: 18px;
+}
+
+/* Gradient accent bar (matches Figma 80×3 gradient element) */
+.sub-accent {
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(13,13,12,0.35) 0%, transparent 100%);
+  margin-bottom: 14px;
+}
+
+.sub-title {
+  font-family: var(--jet);
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin-bottom: 18px;
+}
+
+.sub-body {
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--dim);
+  margin-bottom: 24px;
+}
+
+/* ── Predicate / regime pills ─────────────────────────────────── */
+.pills { display: flex; flex-direction: column; gap: 7px; }
+
+.pill-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+
+.pill-label {
+  font-family: var(--mono);
+  font-weight: 300;
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  color: var(--dim);
+  text-transform: uppercase;
+  flex-shrink: 0;
+  min-width: 54px;
+}
+
+.pill-value {
+  font-family: var(--mono);
+  font-weight: 400;
+  font-size: 10px;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  background: rgba(13,13,12,0.04);
+  border: 1px solid var(--brd);
+  border-radius: 2px;
+  padding: 3px 7px;
+  line-height: 1.5;
+}
+
+/* ── Closing ──────────────────────────────────────────────────── */
+#section-closing { padding-top: 96px; padding-bottom: 96px; }
+
+.closing-meta {
+  font-family: var(--mono);
+  font-weight: 300;
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  color: var(--dim);
+  text-transform: uppercase;
+  margin-bottom: 48px;
+}
+
+.closing-h1 {
+  font-family: var(--jet);
+  font-weight: 300;
+  font-size: clamp(36px, 4vw, 56px);
+  line-height: 1.06;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin-bottom: 36px;
+}
+
+.closing-body {
+  font-family: var(--sans);
+  font-weight: 300;
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--dim);
+  max-width: 420px;
+  margin-bottom: 56px;
+}
+
+.closing-h2 {
+  font-family: var(--jet);
+  font-weight: 300;
+  font-size: clamp(28px, 3vw, 44px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+/* ── Footer ───────────────────────────────────────────────────── */
+footer {
+  border-top: 1px solid var(--brd);
+  padding: 36px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+.footer-brand {
+  font-family: var(--jet);
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.footer-address {
+  font-family: var(--mono);
+  font-weight: 300;
+  font-size: 9.5px;
+  color: var(--dim);
+  line-height: 1.7;
+}
+.footer-right {
+  font-family: var(--mono);
+  font-weight: 300;
+  font-size: 9.5px;
+  color: var(--dim);
+  text-align: right;
+  line-height: 1.7;
+}
+.footer-right a { color: var(--ink); text-decoration: none; }
+.footer-right a:hover { text-decoration: underline; }
+
+/* ── Settings panel (overlay) ─────────────────────────────────── */
+#panel-toggle {
+  position: fixed;
+  top: 12px;
+  right: 14px;
+  z-index: 400;
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  border: 1px solid var(--brd);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+}
+#panel-toggle:hover { background: #fff; }
+
+#panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 390;
+  width: 296px;
+  height: 100vh;
+  background: #f7f5f1;
+  border-left: 1px solid var(--brd);
+  box-shadow: -6px 0 28px rgba(0,0,0,.12);
+  overflow-y: auto;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: #2a2a28;
+  transition: transform .22s ease;
+  padding-bottom: 60px;
+}
+#panel.hidden { transform: translateX(100%); }
+
+#panel-head {
+  position: sticky; top: 0; z-index: 5;
+  background: #f7f5f1;
+  border-bottom: 1px solid var(--brd);
+  padding: 12px 14px;
+  font-family: var(--jet);
+  font-size: 12px;
+  font-weight: 400;
+  display: flex; justify-content: space-between; align-items: center;
+}
+#panel-head button {
+  background: none; border: none; font-size: 15px; cursor: pointer; color: var(--dim);
+}
+
+#sec-tabs { display: flex; border-bottom: 1px solid var(--brd); background: #efece6; }
+.stab {
+  flex: 1; padding: 9px 4px; text-align: center; cursor: pointer;
+  font-family: var(--mono); font-size: 10px; letter-spacing: .04em; color: var(--dim);
+  border-bottom: 2px solid transparent; position: relative;
+}
+.stab.on { color: var(--ink); border-bottom-color: var(--ink); background: #f7f5f1; }
+.stab .live-dot {
+  display: none;
+  width: 5px; height: 5px; border-radius: 50%; background: #d4663b;
+  position: absolute; top: 6px; right: 8px;
+}
+.stab.live .live-dot { display: block; }
+
+#panel-body { padding: 0; }
+
+.pblock { border-bottom: 1px solid var(--brd); padding: 12px 14px; }
+.pblock-title {
+  font-family: var(--mono); font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--dim); margin-bottom: 10px;
+}
+
+.pfield { margin-bottom: 9px; }
+.pfield > label {
+  display: block; font-size: 10px; color: var(--dim); margin-bottom: 3px;
+}
+.prow { display: flex; align-items: center; gap: 7px; }
+.prow input[type=range] { flex: 1; height: 15px; accent-color: #1c1c1a; min-width: 0; cursor: pointer; }
+.prow .val { font-family: var(--mono); font-size: 9.5px; color: #2a2a28; width: 30px; text-align: right; flex-shrink: 0; }
+input[type=color] { width: 26px; height: 20px; border: 1px solid var(--brd); border-radius: 3px; padding: 1px; cursor: pointer; flex-shrink: 0; background: none; }
+select { width: 100%; border: 1px solid var(--brd); border-radius: 4px; padding: 4px 6px; font-size: 11px; background: #fff; font-family: var(--sans); }
+
+.radio-row { display: flex; gap: 6px; }
+.radio-row label {
+  flex: 1; text-align: center; padding: 5px; border: 1px solid var(--brd); border-radius: 5px;
+  cursor: pointer; font-size: 10.5px; color: var(--dim); background: #fff;
+}
+.radio-row input { display: none; }
+.radio-row input:checked + span { font-weight: 600; color: var(--ink); }
+.radio-row label:has(input:checked) { border-color: var(--ink); background: #efece6; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip {
+  padding: 3px 8px; border-radius: 10px; border: 1px solid var(--brd); font-size: 9.5px;
+  cursor: pointer; background: #fff; color: var(--dim);
+}
+.chip.on { background: #1c1c1a; color: #fff; border-color: #1c1c1a; }
+
+.layer { border: 1px solid var(--brd); border-radius: 6px; margin-bottom: 8px; background: #fbfaf7; }
+.layer-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 7px 10px; cursor: pointer; user-select: none;
+}
+.layer-head .lname { font-family: var(--mono); font-size: 10px; letter-spacing: .03em; }
+.layer-head.off .lname { opacity: .42; }
+.layer-body { padding: 4px 10px 10px; display: none; }
+.layer-body.op { display: block; }
+.layer-head .arc { font-size: 8px; opacity: .5; margin-left: auto; }
+
+.tog { position: relative; width: 28px; height: 15px; flex-shrink: 0; }
+.tog input { opacity: 0; width: 0; height: 0; }
+.ts { position: absolute; inset: 0; background: #c9c5bd; border-radius: 8px; cursor: pointer; transition: background .15s; }
+.ts:before { content: ''; position: absolute; width: 11px; height: 11px; left: 2px; top: 2px; background: #fff; border-radius: 50%; transition: transform .15s; }
+.tog input:checked + .ts { background: #1c1c1a; }
+.tog input:checked + .ts:before { transform: translateX(13px); }
+
+.file-in { font-size: 10px; width: 100%; }
+.vid-status { font-size: 9.5px; color: var(--dim); margin-top: 5px; font-family: var(--mono); }
+
+/* ── Mobile ──────────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  #main {
+    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+  }
+  #canvas-dock {
+    order: -1;
+    position: sticky;
+    top: var(--hdr);
+    height: 40vh;
+    padding: 16px;
+    border-bottom: 1px solid var(--brd);
+    z-index: 100;
+    background: var(--bg);
+  }
+  #cv {
+    width: auto;
+    height: 100%;
+    aspect-ratio: unset;
+    max-height: calc(40vh - 32px);
+    max-width: calc((40vh - 32px) * 4 / 5);
+  }
+  #content { border-right: none; }
+  .section { padding: 56px 28px; }
+  .hero-heading { font-size: 32px; }
+  .wl-heading   { font-size: 26px; }
+  .closing-h1   { font-size: 30px; }
+  .closing-h2   { font-size: 24px; }
+  nav { display: none; }
+  #hdr { padding: 0 24px; }
+  footer { padding: 28px 24px; flex-direction: column; gap: 16px; }
+  .footer-right { text-align: left; }
+  #panel { width: 100%; }
+}
 </style>
 </head>
 <body>
 
-<div id="canvas-area">
-  <div id="canvas-wrapper">
-    <canvas id="output-canvas"></canvas>
+<!-- ── Settings panel toggle ──────────────────────────────────── -->
+<button id="panel-toggle" title="Visual controls">⚙</button>
+
+<!-- ── Settings panel ─────────────────────────────────────────── -->
+<div id="panel" class="hidden">
+  <div id="panel-head">
+    <span>Visual Controls</span>
+    <button id="panel-close" title="Hide">✕</button>
   </div>
-  <div id="btm">
-    <span>W</span><input type="number" id="cw" value="800" min="100" max="4000" step="50">
-    <span>px H</span><input type="number" id="ch" value="1100" min="100" max="4000" step="50">
-    <span>px</span>
-    <select id="preset-size">
-      <option value="">Custom</option>
-      <option value="800x1100">A4</option>
-      <option value="1080x1080">Square</option>
-      <option value="1080x1920">Story</option>
-      <option value="2500x3500">Print</option>
-    </select>
+  <div id="sec-tabs">
+    <div class="stab on" data-i="0">First<span class="live-dot"></span></div>
+    <div class="stab" data-i="1">Second<span class="live-dot"></span></div>
+    <div class="stab" data-i="2">Third<span class="live-dot"></span></div>
   </div>
+  <div id="panel-body"></div>
 </div>
 
-<div id="panel">
-  <div id="pt">Non-grid Pixelation <button onclick="resetAll()">Reset</button></div>
+<!-- ── Header ─────────────────────────────────────────────────── -->
+<header id="hdr">
+  <a href="#" class="logo">Octet</a>
+  <nav>
+    <a href="#">Platform</a>
+    <a href="#">Architecture</a>
+    <a href="#">Use Cases</a>
+    <a href="#">SDK</a>
+    <a href="#">Pricing</a>
+    <a href="#">FAQs</a>
+    <a href="#">Terms</a>
+    <a href="#">Writing</a>
+  </nav>
+</header>
 
-  <!-- Input -->
-  <div class="sec">
-    <div class="sh op" onclick="tog(this)">Input <span class="ar">▲</span></div>
-    <div class="sb op">
-      <div class="tabs">
-        <div class="tab on" id="ti" onclick="switchInput('img')">Image</div>
-        <div class="tab" id="tv" onclick="switchInput('vid')">Video</div>
-        <div class="tab" id="tp" onclick="switchInput('pat')">Pattern</div>
-      </div>
-      <div id="ii">
-        <div class="drop" onclick="document.getElementById('if').click()">Click or drop image</div>
-        <input type="file" id="if" accept="image/*" style="display:none" onchange="loadImg(event)">
-        <img id="ith" class="thumb">
-        <button class="btn" style="margin-top:6px" onclick="loadExampleImg()">🌸 Load example image</button>
-      </div>
-      <div id="iv" style="display:none">
-        <div class="drop" onclick="document.getElementById('vf').click()">Click or drop video</div>
-        <input type="file" id="vf" accept="video/*" style="display:none" onchange="loadVid(event)">
-        <video id="vp" controls loop></video>
-        <button class="btn" style="margin-top:6px" onclick="loadExampleVid()">▶ Load example video</button>
-        <div class="tog-row" style="margin-top:7px">
-          <span style="font-size:11px"><span class="live-dot"></span>Live (while playing)</span>
-          <label class="tog"><input type="checkbox" id="live" checked onchange="onLiveToggle()"><span class="ts"></span></label>
-        </div>
-        <button class="btn" style="margin-top:2px" onclick="processFrame()">Process current frame</button>
-      </div>
+<!-- ── Two-column main ────────────────────────────────────────── -->
+<div id="main">
 
-      <!-- Pattern input panel -->
-      <div id="ip" style="display:none">
-        <div class="field"><label class="lbl">Type</label>
-          <select id="pat-type"><option value="rings">Concentric rings</option></select>
-        </div>
-        <div class="field"><label class="lbl">Speed</label>
-          <div class="row">
-            <input type="range" id="pat-speed" min="0" max="3" step="0.05" value="0.5" oninput="sn(this,'npat-speed')">
-            <input type="number" id="npat-speed" min="0" max="3" step="0.05" value="0.5" oninput="sr(this,'pat-speed')" style="width:44px">
-          </div>
-        </div>
-        <div class="field"><label class="lbl">Ring spacing</label>
-          <div class="row">
-            <input type="range" id="pat-spacing" min="10" max="150" step="1" value="60" oninput="sn(this,'npat-spacing')">
-            <input type="number" id="npat-spacing" min="10" max="150" step="1" value="60" oninput="sr(this,'pat-spacing')" style="width:44px">
-          </div>
-        </div>
-        <div class="field"><label class="lbl">Sharpness</label>
-          <div class="row">
-            <input type="range" id="pat-sharp" min="0" max="95" step="1" value="30" oninput="sn(this,'npat-sharp')">
-            <input type="number" id="npat-sharp" min="0" max="95" step="1" value="30" oninput="sr(this,'pat-sharp')" style="width:44px">
-          </div>
-        </div>
-        <div class="tog-row" style="margin-top:4px">
-          <span style="font-size:11px">Inward</span>
-          <label class="tog"><input type="checkbox" id="pat-dir"><span class="ts"></span></label>
+  <!-- Left: scrollable content -->
+  <div id="content">
+
+    <!-- ── First section · Hero ─────────────────────────────── -->
+    <section class="section" id="section-hero">
+      <div class="sec-label">
+        <span class="sec-label-rule"></span>Use Cases
+      </div>
+      <h1 class="hero-heading">The SDK is live across two workloads.</h1>
+      <p class="hero-body">Account takeover, business email compromise, synthetic identity, payment fraud — all originate somewhere else, by definition. Sanctions screening, securities offerings, content licensing, gaming compacts — all turn on where the user actually is. Octet replaces guesswork with a hardware-signed predicate against the policy you set.</p>
+    </section>
+
+    <!-- ── First section · Workload 01 ──────────────────────── -->
+    <section class="section" id="section-wl01">
+      <div class="sec-label">
+        <span class="sec-label-rule"></span><span class="wl-num">01</span>· Workload
+      </div>
+      <h2 class="wl-heading">Jurisdictional compliance and geofencing.</h2>
+      <p class="wl-intro">A sanctions screen runs on an IP address and a country code from a dropdown. A five-dollar VPN defeats it. Major IP geolocation databases disagree on the same address by an average of 620 kilometres. The largest sanctions fine in banking history was $8.9 billion. A recent one was $4.3 billion, and the CEO did prison time. OFAC violations are strict liability. Octet replaces the IP heuristic with a hardware-signed predicate over presence.</p>
+
+      <div class="sub">
+        <div class="sub-num">01.01</div>
+        <div class="sub-accent"></div>
+        <h3 class="sub-title">National exclusion: blocking the United States</h3>
+        <p class="sub-body">Unregistered securities offerings, certain derivatives, unlicensed gambling, and tokens that meet the Howey test all carry federal exposure. SEC Regulation S requires the seller to hold a reasonable belief that the buyer is outside the US. IP geolocation does not meet a defensible reasonable-belief standard. Self-attestation does not either.<br><br>Octet issues a hardware-signed proof before any session opens. The proof covers Puerto Rico, Guam, American Samoa, the US Virgin Islands, and the Northern Mariana Islands. Verifiable offline. Retained for audit. No raw coordinates leave the device.</p>
+        <div class="pills">
+          <div class="pill-row"><span class="pill-label">Predicate</span><span class="pill-value">outside(us_polygon)</span></div>
+          <div class="pill-row"><span class="pill-label">Regime</span><span class="pill-value">Reg S · Howey · ATS · broker-dealer</span></div>
         </div>
       </div>
 
-    </div>
-  </div>
-
-  <!-- Presets -->
-  <div class="sec">
-    <div class="sh op" onclick="tog(this)">Presets <span class="ar">▲</span></div>
-    <div class="sb op">
-      <div class="preset-row">
-        <select id="preset-sel" onchange="loadPreset()"><option value="">— select preset —</option></select>
-        <button class="btn sm del" onclick="deletePreset()">✕</button>
-      </div>
-      <button class="btn" onclick="showSaveForm()">Save current as preset…</button>
-      <div id="save-form" style="display:none;margin-top:5px">
-        <div class="row">
-          <input type="text" id="preset-name" placeholder="Preset name…" style="flex:1;border:1px solid #ccc;border-radius:4px;padding:4px 7px;font-size:11px">
-          <button class="btn sm pri" style="margin-left:4px" onclick="confirmSave()">Save</button>
-          <button class="btn sm" onclick="hideSaveForm()">✕</button>
+      <div class="sub">
+        <div class="sub-num">01.02</div>
+        <div class="sub-accent"></div>
+        <h3 class="sub-title">Sanctioned jurisdiction blocking</h3>
+        <p class="sub-body">OFAC and EU restrictive measures impose strict liability. Seventy-one million people in sanctioned jurisdictions live within 100 km of a border with a non-sanctioned territory. IP databases disagree on the same address by an average of 620 km — wider than the border between nearly every sanctioned and unsanctioned country on earth.<br><br>A regulator asking for evidence gets a signed predicate, not an IP heuristic.</p>
+        <div class="pills">
+          <div class="pill-row"><span class="pill-label">Predicate</span><span class="pill-value">outside(sanctions_set)</span></div>
+          <div class="pill-row"><span class="pill-label">Regime</span><span class="pill-value">OFAC · EU restrictive measures</span></div>
         </div>
       </div>
-      <div id="preset-info" style="font-size:10px;color:#888;margin-top:4px"></div>
-    </div>
-  </div>
 
-  <!-- Thresholds -->
-  <div class="sec">
-    <div class="sh op" onclick="tog(this)">Thresholds <span class="ar">▲</span></div>
-    <div class="sb op">
-      <div class="field"><label class="lbl">Dark</label>
-        <div class="row"><input type="range" id="td" min="0" max="255" value="25" oninput="sn(this,'ntd');render()"><input type="number" id="ntd" value="25" min="0" max="255" oninput="sr(this,'td');render()"></div></div>
-      <div class="field"><label class="lbl">Shadow</label>
-        <div class="row"><input type="range" id="ts" min="0" max="255" value="50" oninput="sn(this,'nts');render()"><input type="number" id="nts" value="50" min="0" max="255" oninput="sr(this,'ts');render()"></div></div>
-      <div class="field"><label class="lbl">Midtone</label>
-        <div class="row"><input type="range" id="tm" min="0" max="255" value="130" oninput="sn(this,'ntm');render()"><input type="number" id="ntm" value="130" min="0" max="255" oninput="sr(this,'tm');render()"></div></div>
-      <div class="field"><label class="lbl">Highlight</label>
-        <div class="row"><input type="range" id="th" min="0" max="255" value="200" oninput="sn(this,'nth');render()"><input type="number" id="nth" value="200" min="0" max="255" oninput="sr(this,'th');render()"></div></div>
-      <div class="field"><label class="lbl">Reference overlay opacity</label>
-        <div class="row"><input type="range" id="ref" min="0" max="100" value="0" oninput="sn(this,'nref');render()"><input type="number" id="nref" value="0" min="0" max="100" oninput="sr(this,'ref');render()"></div></div>
-    </div>
-  </div>
-
-  <!-- Layer sections (built by JS) -->
-  <div class="sec"><div class="sh" onclick="tog(this)">Darks Layer<span class="sh-right"><label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="den" checked onchange="onLayerToggle(this,'d')"><span class="ts"></span></label><span class="ar">▼</span></span></div><div class="sb" id="bd"></div></div>
-  <div class="sec"><div class="sh op" onclick="tog(this)">Shadows Layer<span class="sh-right"><label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="sen" checked onchange="onLayerToggle(this,'s')"><span class="ts"></span></label><span class="ar">▲</span></span></div><div class="sb op" id="bs"></div></div>
-  <div class="sec"><div class="sh" onclick="tog(this)">Midtones Layer<span class="sh-right"><label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="men" checked onchange="onLayerToggle(this,'m')"><span class="ts"></span></label><span class="ar">▼</span></span></div><div class="sb" id="bm"></div></div>
-  <div class="sec"><div class="sh" onclick="tog(this)">Highlights Layer<span class="sh-right"><label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="hen" checked onchange="onLayerToggle(this,'h')"><span class="ts"></span></label><span class="ar">▼</span></span></div><div class="sb" id="bh"></div></div>
-  <div class="sec"><div class="sh" onclick="tog(this)">Brights Layer<span class="sh-right"><label class="tog" onclick="event.stopPropagation()"><input type="checkbox" id="ben" checked onchange="onLayerToggle(this,'b')"><span class="ts"></span></label><span class="ar">▼</span></span></div><div class="sb" id="bb"></div></div>
-
-  <!-- Background -->
-  <div class="sec">
-    <div class="sh" onclick="tog(this)">Background <span class="ar">▼</span></div>
-    <div class="sb">
-      <div class="field"><label class="lbl">Color</label><input type="color" id="bgc" value="#000000" oninput="render()"></div>
-    </div>
-  </div>
-
-  <!-- Text overlay -->
-  <div class="sec">
-    <div class="sh" onclick="tog(this)">Text Overlay <span class="ar">▼</span></div>
-    <div class="sb">
-      <div class="tog-row"><span>Show text</span><label class="tog"><input type="checkbox" id="sht" checked onchange="renderText()"><span class="ts"></span></label></div>
-      <button class="btn" onclick="addTxt()">Add text layer</button>
-      <button class="btn del" onclick="delTxt()">Delete selected</button>
-      <div id="txtlist"></div>
-      <div id="txtctrl" style="display:none;margin-top:7px">
-        <div class="field"><label class="lbl">Content</label><input type="text" id="tc" oninput="updTxt()"></div>
-        <div class="field"><label class="lbl">Size</label><div class="row"><input type="range" id="tfs" min="8" max="400" value="80" oninput="sn(this,'ntfs');updTxt()"><input type="number" id="ntfs" value="80" oninput="sr(this,'tfs');updTxt()"></div></div>
-        <div class="field"><label class="lbl">Weight</label><select id="tw" onchange="updTxt()"><option value="400">Regular</option><option value="700" selected>Bold</option><option value="900">Black</option></select></div>
-        <div class="field"><label class="lbl">Style</label><select id="tst" onchange="updTxt()"><option value="normal" selected>Normal</option><option value="italic">Italic</option></select></div>
-        <div class="field"><label class="lbl">Color</label><input type="color" id="tco" value="#ffffff" oninput="updTxt()"></div>
-        <div class="field"><label class="lbl">Background + opacity %</label><div class="row"><input type="color" id="tbg" value="#000000" oninput="updTxt()"><input type="number" id="tbgo" min="0" max="100" value="0" oninput="updTxt()"><span>%</span></div></div>
-        <div class="field"><label class="lbl">Custom font</label><input type="file" accept=".ttf,.otf,.woff,.woff2" onchange="loadFont(event)" style="font-size:10px;width:100%"></div>
+      <div class="sub">
+        <div class="sub-num">01.03</div>
+        <div class="sub-accent"></div>
+        <h3 class="sub-title">State-by-state activation</h3>
+        <p class="sub-body">A single platform can serve only the jurisdictions where it holds authorisation, or where federal preemption has been judicially confirmed. The geofence updates without a client release as state injunctions issue or lift. The same primitive supports county-level and municipal carve-outs, and tribal land where gaming compacts apply.</p>
+        <div class="pills">
+          <div class="pill-row"><span class="pill-label">Predicate</span><span class="pill-value">inside(state_polygon)</span></div>
+          <div class="pill-row"><span class="pill-label">Regime</span><span class="pill-value">State securities · gaming compacts</span></div>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Randomize -->
-  <div class="sec">
-    <div class="sh op" onclick="tog(this)">Randomize <span class="ar">▲</span></div>
-    <div class="sb op">
-      <div style="font-size:10.5px;color:#666;margin-bottom:8px;line-height:1.5">Check what to randomize. Unchecked settings stay as-is.</div>
-      <div class="field">
-        <div class="tog-row"><span style="font-size:11px">Pixel size (per layer)</span><label class="tog"><input type="checkbox" id="rz-ps" checked><span class="ts"></span></label></div>
-        <div class="tog-row"><span style="font-size:11px">Density (per layer)</span><label class="tog"><input type="checkbox" id="rz-dn" checked><span class="ts"></span></label></div>
-        <div class="tog-row"><span style="font-size:11px">Jitter (per layer)</span><label class="tog"><input type="checkbox" id="rz-jt" checked><span class="ts"></span></label></div>
-        <div class="tog-row"><span style="font-size:11px">Color theme (per layer)</span><label class="tog"><input type="checkbox" id="rz-th" checked><span class="ts"></span></label></div>
-        <div class="tog-row"><span style="font-size:11px">Color mode (per layer)</span><label class="tog"><input type="checkbox" id="rz-md"><span class="ts"></span></label></div>
-        <div class="tog-row"><span style="font-size:11px">Stroke weight (per layer)</span><label class="tog"><input type="checkbox" id="rz-sw"><span class="ts"></span></label></div>
-        <div class="tog-row"><span style="font-size:11px">Thresholds</span><label class="tog"><input type="checkbox" id="rz-tz"><span class="ts"></span></label></div>
-        <div class="tog-row"><span style="font-size:11px">Background color</span><label class="tog"><input type="checkbox" id="rz-bg"><span class="ts"></span></label></div>
+      <div class="sub">
+        <div class="sub-num">01.04</div>
+        <div class="sub-accent"></div>
+        <h3 class="sub-title">Sub-political zones: prisons, schools, stadiums</h3>
+        <p class="sub-body">Octet supports polygon definitions at any scale, from a single building to a campus to a stadium bowl. The same cryptographic guarantee as a national geofence. Operators publish their polygons; any compliant app honours them.</p>
+        <div class="pills">
+          <div class="pill-row"><span class="pill-label">Predicate</span><span class="pill-value">outside(restricted_polygon)</span></div>
+          <div class="pill-row"><span class="pill-label">Regime</span><span class="pill-value">Venue ops · institutional policy</span></div>
+        </div>
       </div>
-      <button class="btn pri" style="margin-top:6px" onclick="randomizeAll()">🎲 Randomize</button>
-    </div>
+    </section>
+
+    <!-- ── Second section · Workload 02 ─────────────────────── -->
+    <section class="section" id="section-wl02">
+      <div class="sec-label">
+        <span class="sec-label-rule"></span><span class="wl-num">02</span>· Workload
+      </div>
+      <h2 class="wl-heading">Fraud prevention.</h2>
+      <p class="wl-intro">Account takeover, business email compromise, synthetic identities, AI-driven impersonation, payment fraud — every one originates somewhere else, by definition. When a proof of presence is bound to the device, the attacker fails. Generative AI has industrialised fraud; the only shield against perfect copies is ground truth that cannot be reproduced.</p>
+
+      <div class="sub">
+        <div class="sub-num">02.01</div>
+        <div class="sub-accent"></div>
+        <h3 class="sub-title">Account takeover (invisible login)</h3>
+        <p class="sub-body">Octet runs alongside your existing auth. When the device produces a valid presence proof, your app can skip the push notification, the SMS code, the step-up challenge.<br><br>A criminal in Lagos logs in with stolen credentials and spoofs a Chicago IP to match the account holder. The IP checks pass. The device cannot produce a valid presence proof for Chicago. The proof fails. Your stack catches it. The real customer never sees a challenge.</p>
+        <div class="pills">
+          <div class="pill-row"><span class="pill-label">Predicate</span><span class="pill-value">within(50m, account_action_origin)</span></div>
+          <div class="pill-row"><span class="pill-label">Anchor</span><span class="pill-value">ATO losses +23% YoY · MFA friction abandons 15–20%</span></div>
+        </div>
+      </div>
+
+      <div class="sub">
+        <div class="sub-num">02.02</div>
+        <div class="sub-accent"></div>
+        <h3 class="sub-title">Business email compromise · wire approval</h3>
+        <p class="sub-body">Your CFO approves wires from HQ all day. Octet adds a signed proof that the approval originated at HQ. An attacker submits a wire request with compromised credentials. Their device is not at HQ. The proof fails. Existing controls take over.</p>
+        <div class="pills">
+          <div class="pill-row"><span class="pill-label">Predicate</span><span class="pill-value">within(100m, hq_address)</span></div>
+          <div class="pill-row"><span class="pill-label">Anchor</span><span class="pill-value">63% of orgs hit by BEC · ~$130k avg loss</span></div>
+        </div>
+      </div>
+
+      <div class="sub">
+        <div class="sub-num">02.03</div>
+        <div class="sub-accent"></div>
+        <h3 class="sub-title">Invoice fraud · supplier verification</h3>
+        <p class="sub-body">Invoices from suppliers whose device is at their registered address are fast-tracked. An attacker in Vietnam compromises a supplier's email account. Their device is not at the supplier's address. The proof fails before the invoice enters the approval queue.</p>
+        <div class="pills">
+          <div class="pill-row"><span class="pill-label">Predicate</span><span class="pill-value">within(5km, supplier_address)</span></div>
+          <div class="pill-row"><span class="pill-label">Anchor</span><span class="pill-value">44% of companies hit by invoice fraud · $133k avg per incident</span></div>
+        </div>
+      </div>
+
+      <div class="sub">
+        <div class="sub-num">02.04</div>
+        <div class="sub-accent"></div>
+        <h3 class="sub-title">Synthetic identity · multi-accounting</h3>
+        <p class="sub-body">Real users sign up normally. No CAPTCHA gauntlet, no KYC wall. A fraud ring spins up 1,000 wallets from a device farm in Shenzhen: blocked. Bot armies grinding gaming rewards from a data centre: gone. The predicate is non-collocation with existing accounts; the proof either holds or it does not.</p>
+        <div class="pills">
+          <div class="pill-row"><span class="pill-label">Predicate</span><span class="pill-value">not_colocated_with(existing_accounts)</span></div>
+          <div class="pill-row"><span class="pill-label">Anchor</span><span class="pill-value">iGaming: ~15% revenue lost to multi-accounting · 26% fake accounts</span></div>
+        </div>
+      </div>
+
+      <div class="sub">
+        <div class="sub-num">02.05</div>
+        <div class="sub-accent"></div>
+        <h3 class="sub-title">Verified remote workforce</h3>
+        <p class="sub-body">Hire globally. The candidate claims Austin. Their device either produces a valid proof for Austin, or it does not. Octet adds a continuous, hardware-signed proof of jurisdiction to your existing compliance checks. The FBI has documented DPRK operatives at 300+ US companies; one indictment named fourteen operatives who generated $88 million over six years.</p>
+        <div class="pills">
+          <div class="pill-row"><span class="pill-label">Predicate</span><span class="pill-value">not_in([DPRK, IR, RU, BY, CU, SY])</span></div>
+          <div class="pill-row"><span class="pill-label">Anchor</span><span class="pill-value">DOJ Dec 2024 indictment · OFAC strict liability</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Third section · Closing ──────────────────────────── -->
+    <section class="section" id="section-closing">
+      <div class="closing-meta">From claims to predicates</div>
+      <h2 class="closing-h1">Every era trades trust for proof.</h2>
+      <p class="closing-body">HTTP became HTTPS. The magnetic stripe became the EMV chip. The paper passport became the cryptographic chip. In every case, as the cost of fraud rose, the friction designed to compensate for not-knowing fell away. Location is next.</p>
+      <h2 class="closing-h2">The ground is where the truth has been all along.</h2>
+    </section>
+
+  </div><!-- /content -->
+
+  <!-- Right: sticky canvas dock -->
+  <div id="canvas-dock">
+    <canvas id="cv"></canvas>
   </div>
 
-  <div style="padding:12px 14px">
-    <button class="btn pri" onclick="exportPNG()">⬆ Export PNG</button>
-    <button class="btn" onclick="regenerate()">Regenerate scatter</button>
+</div><!-- /main -->
+
+<!-- ── Footer ──────────────────────────────────────────────────── -->
+<footer>
+  <div>
+    <div class="footer-brand">Octet</div>
+    <div class="footer-address">Bowling Green Lane, London EC1R.<br>Cryptographic Proof of Presence.</div>
   </div>
-</div>
+  <div class="footer-right">
+    <div>Contact</div>
+    <a href="mailto:hello@octetproof.com">hello@octetproof.com</a>
+    <div style="margin-top:4px;font-size:9px;letter-spacing:0.04em">Use Cases · v2</div>
+  </div>
+</footer>
 
 <script>
-// ══ Built-in presets (always available, not from localStorage) ═════════════════
-const BUILT_IN_PRESETS = [
-  {
-    name: 'Botanical',
-    exampleImg: './media/flower.jpg',
-    state: {
-      td:'18', ts:'55', tm:'130', th:'210', ref:'0', bgc:'#000000',
-      layers:[
-        {id:'d',theme:'bloom',  c1:'#e18ea3',c2:'#cf2f1e',mode:'solid-brightness',ps:'16',dn:'80',jt:'18',sw:'0',sc:'#000000',sg:false,en:false},
-        {id:'s',theme:'forest', c1:'#a0b80a',c2:'#4e5d02',mode:'solid-brightness',ps:'16',dn:'80',jt:'18',sw:'0',sc:'#000000',sg:false,en:true},
-        {id:'m',theme:'surface',c1:'#645139',c2:'#5ca6cd',mode:'gradient-cell',   ps:'24',dn:'88',jt:'20',sw:'0',sc:'#000000',sg:false,en:true},
-        {id:'h',theme:'bloom',  c1:'#e18ea3',c2:'#cf2f1e',mode:'random-gradient', ps:'36',dn:'90',jt:'22',sw:'0',sc:'#000000',sg:false,en:true},
-        {id:'b',theme:'sunset', c1:'#e44d43',c2:'#f9cf80',mode:'gradient-cell',   ps:'28',dn:'95',jt:'14',sw:'0',sc:'#000000',sg:false,en:true},
-      ]
-    }
-  },
-  {
-    name: 'Preset 1',
-    exampleImg: './media/flower.jpg',
-    state: {"bgc":"#ededed","ref":"0","td":"0","ts":"40","tm":"72","th":"230","layers":[{"id":"d","theme":"bloom","c1":"#02e6ff","c2":"#0044cc","mode":"solid-brightness","ps":"16","dn":"80","jt":"18","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"s","theme":"surface","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"89","dn":"100","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"m","theme":"forest","c1":"#02e6ff","c2":"#0044cc","mode":"solid-brightness","ps":"12","dn":"88","jt":"0","sw":"0","sc":"#000000","sg":true,"en":true},{"id":"h","theme":"sunset","c1":"#02e6ff","c2":"#0044cc","mode":"solid-brightness","ps":"10","dn":"90","jt":"22","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"b","theme":"sunset","c1":"#02e6ff","c2":"#0044cc","mode":"solid-brightness","ps":"12","dn":"95","jt":"14","sw":"0","sc":"#000000","sg":false,"en":true}]}
-  },
-  {
-    name: 'Preset 2',
-    exampleImg: './media/flower.jpg',
-    state: {"bgc":"#ededed","ref":"0","td":"19","ts":"55","tm":"180","th":"230","layers":[{"id":"d","theme":"custom","c1":"#f2f2f2","c2":"#0044cc","mode":"solid","ps":"40","dn":"100","jt":"0","sw":"1","sc":"#d4d4d4","sg":false,"en":true},{"id":"s","theme":"surface","c1":"#02e6ff","c2":"#0044cc","mode":"gradient-cell","ps":"40","dn":"87","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"m","theme":"forest","c1":"#02e6ff","c2":"#0044cc","mode":"solid","ps":"40","dn":"88","jt":"0","sw":"0","sc":"#000000","sg":true,"en":true},{"id":"h","theme":"sunset","c1":"#02e6ff","c2":"#0044cc","mode":"solid-brightness","ps":"40","dn":"90","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"b","theme":"sunset","c1":"#02e6ff","c2":"#0044cc","mode":"solid-brightness","ps":"40","dn":"95","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true}]}
-  },
-  {
-    name: 'Preset 3',
-    exampleImg: './media/flower.jpg',
-    state: {"bgc":"#ededed","ref":"0","td":"0","ts":"57","tm":"118","th":"255","layers":[{"id":"d","theme":"custom","c1":"#f2f2f2","c2":"#0044cc","mode":"solid","ps":"40","dn":"100","jt":"0","sw":"1","sc":"#d4d4d4","sg":false,"en":false},{"id":"s","theme":"sunset","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"25","dn":"87","jt":"0","sw":"0","sc":"#000000","sg":true,"en":true},{"id":"m","theme":"surface","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"25","dn":"88","jt":"0","sw":"0","sc":"#000000","sg":true,"en":true},{"id":"h","theme":"bloom","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"25","dn":"90","jt":"0","sw":"0","sc":"#000000","sg":true,"en":true},{"id":"b","theme":"forest","c1":"#02e6ff","c2":"#0044cc","mode":"solid-brightness","ps":"40","dn":"95","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true}]}
-  },
-  {
-    name: 'Preset 4',
-    exampleImg: './media/flower.jpg',
-    state: {"td":"0","ts":"108","tm":"139","th":"250","ref":"0","bgc":"#c7c7c7","layers":[{"id":"d","theme":"forest","c1":"#cdb18a","c2":"#7a4a7b","mode":"solid-brightness","ps":"18","dn":"70","jt":"18","sw":"0","sc":"#000000","sg":false,"en":false},{"id":"s","theme":"bloom","c1":"#8a153f","c2":"#cb03db","mode":"solid-brightness","ps":"47","dn":"72","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"m","theme":"bloom","c1":"#48924b","c2":"#2d57a9","mode":"gradient-cell","ps":"76","dn":"68","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"h","theme":"bloom","c1":"#fbb63f","c2":"#b8bdc5","mode":"random-gradient","ps":"67","dn":"78","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"b","theme":"forest","c1":"#909e34","c2":"#ccb7c2","mode":"gradient-cell","ps":"36","dn":"72","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true}]}
-  },
-  {
-    name: 'Preset 5',
-    exampleImg: './media/flower.jpg',
-    state: {"td":"26","ts":"174","tm":"221","th":"250","ref":"0","bgc":"#c7c7c7","layers":[{"id":"d","theme":"surface","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"47","dn":"62","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"s","theme":"sunset","c1":"#02e6ff","c2":"#0044cc","mode":"gradient-cell","ps":"47","dn":"72","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"m","theme":"bloom","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"47","dn":"68","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"h","theme":"bloom","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"47","dn":"78","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"b","theme":"forest","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"47","dn":"72","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true}]}
-  },
-  {
-    name: 'Preset 6',
-    exampleImg: './media/flower.jpg',
-    state: {"td":"26","ts":"174","tm":"221","th":"250","ref":"0","bgc":"#c7c7c7","layers":[{"id":"d","theme":"surface","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"29","dn":"48","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"s","theme":"sunset","c1":"#02e6ff","c2":"#0044cc","mode":"gradient-cell","ps":"47","dn":"48","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"m","theme":"bloom","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"24","dn":"62","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"h","theme":"bloom","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"26","dn":"68","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"b","theme":"forest","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"78","dn":"66","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true}]}
-  },
-  {
-    name: 'Preset 7',
-    exampleImg: './media/flower.jpg',
-    state: {"td":"29","ts":"31","tm":"103","th":"225","ref":"0","bgc":"#c7c7c7","layers":[{"id":"d","theme":"forest","c1":"#61f836","c2":"#213979","mode":"gradient-cell","ps":"71","dn":"50","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"s","theme":"sunset","c1":"#bc018b","c2":"#8f1ac3","mode":"random-gradient","ps":"21","dn":"92","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"m","theme":"sunset","c1":"#00277a","c2":"#0d4f01","mode":"solid","ps":"61","dn":"95","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"h","theme":"bloom","c1":"#fe8a88","c2":"#aa519a","mode":"solid","ps":"59","dn":"89","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"b","theme":"sunset","c1":"#178d2b","c2":"#f32461","mode":"gradient-cell","ps":"40","dn":"50","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true}]}
-  },
-  {
-    name: 'Preset 7b',
-    exampleImg: './media/flower.jpg',
-    state: {"td":"29","ts":"31","tm":"103","th":"225","ref":"0","bgc":"#c7c7c7","layers":[{"id":"d","theme":"forest","c1":"#61f836","c2":"#213979","mode":"solid-brightness","ps":"71","dn":"50","jt":"0","sw":"1","sc":"#000000","sg":true,"en":true},{"id":"s","theme":"sunset","c1":"#bc018b","c2":"#8f1ac3","mode":"solid","ps":"21","dn":"92","jt":"0","sw":"2","sc":"#000000","sg":true,"en":true},{"id":"m","theme":"sunset","c1":"#00277a","c2":"#0d4f01","mode":"solid","ps":"61","dn":"95","jt":"0","sw":"1","sc":"#000000","sg":false,"en":true},{"id":"h","theme":"bloom","c1":"#fe8a88","c2":"#aa519a","mode":"solid","ps":"59","dn":"89","jt":"0","sw":"2","sc":"#000000","sg":true,"en":true},{"id":"b","theme":"sunset","c1":"#178d2b","c2":"#f32461","mode":"solid","ps":"40","dn":"50","jt":"0","sw":"2","sc":"#000000","sg":true,"en":true}]}
-  },
-  {
-    name: 'Preset 8',
-    exampleImg: './media/flower.jpg',
-    state: {"td":"21","ts":"56","tm":"85","th":"234","ref":"0","bgc":"#c7c7c7","layers":[{"id":"d","theme":"forest","c1":"#61f836","c2":"#213979","mode":"solid","ps":"71","dn":"84","jt":"0","sw":"1","sc":"#000000","sg":true,"en":true},{"id":"s","theme":"sunset","c1":"#bc018b","c2":"#8f1ac3","mode":"gradient-cell","ps":"10","dn":"51","jt":"0","sw":"2","sc":"#000000","sg":true,"en":true},{"id":"m","theme":"sunset","c1":"#00277a","c2":"#0d4f01","mode":"gradient-cell","ps":"57","dn":"48","jt":"0","sw":"1","sc":"#000000","sg":false,"en":false},{"id":"h","theme":"bloom","c1":"#fe8a88","c2":"#aa519a","mode":"random-gradient","ps":"47","dn":"91","jt":"0","sw":"2","sc":"#000000","sg":true,"en":false},{"id":"b","theme":"sunset","c1":"#178d2b","c2":"#f32461","mode":"solid","ps":"75","dn":"51","jt":"0","sw":"2","sc":"#000000","sg":true,"en":false}]}
-  },
-];
-const DEFAULT_PRESET = BUILT_IN_PRESETS[0].state;
+"use strict";
 
-// ══ Themes ════════════════════════════════════════════════════════════════════
+/* ══ Colour themes ════════════════════════════════════════════════ */
 const THEMES = {
   surface:{ name:'Surface', c1:'#645139', c2:'#5ca6cd' },
   sunset: { name:'Sunset',  c1:'#e44d43', c2:'#f9cf80' },
@@ -338,717 +694,495 @@ const THEMES = {
   bloom:  { name:'Bloom',   c1:'#e18ea3', c2:'#cf2f1e' },
   custom: { name:'Custom',  c1:'#02e6ff', c2:'#0044cc' },
 };
+const MODES = [
+  ['solid','Solid'], ['gradient-cell','Gradient'],
+  ['solid-brightness','Brightness'], ['random-gradient','Random ↔'],
+];
+const LAYER_NAMES = { d:'Darks', s:'Shadows', m:'Midtones', h:'Highlights', b:'Brights' };
 
-const LAYERS = [
-  { id:'d', body:'bd', theme:'bloom',   mode:'solid-brightness', ps:22, den:100, jit:12, sw:3, sc:'#000000', sg:false },
-  { id:'s', body:'bs', theme:'forest',  mode:'solid-brightness', ps:28, den:100, jit:15, sw:3, sc:'#000000', sg:false },
-  { id:'m', body:'bm', theme:'bloom',   mode:'gradient-cell',    ps:34, den:100, jit:20, sw:3, sc:'#000000', sg:false },
-  { id:'h', body:'bh', theme:'sunset',  mode:'random-gradient',  ps:42, den:100, jit:25, sw:3, sc:'#000000', sg:false },
-  { id:'b', body:'bb', theme:'surface', mode:'gradient-cell',    ps:36, den:100, jit:20, sw:3, sc:'#000000', sg:false },
+/* ══ Colour helpers ═══════════════════════════════════════════════ */
+function hexRgb(h){ return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; }
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const easeIO = t => t < .5 ? 2*t*t : -1+(4-2*t)*t;
+const rgbStr = a => `rgb(${a[0]|0},${a[1]|0},${a[2]|0})`;
+
+/* ══ Per-section state ════════════════════════════════════════════
+   Three sections: 0 First (noise), 1 Second (video), 2 Third (video).
+   Each carries a source type, noise params, and a visual preset.    */
+function L(id,theme,mode,ps,dn,jt,extra){
+  return Object.assign({ id, theme, c1:'#02e6ff', c2:'#0044cc', mode,
+    ps:String(ps), dn:String(dn), jt:String(jt), sw:'0', sc:'#000000', sg:false, en:true }, extra||{});
+}
+const STATES = [
+  { // ── First · noise ──
+    source:'noise',
+    noise:{ speed:0.6, scale:7, detail:3, contrast:42 },
+    preset:{ bgc:'#ededed', td:'0', ts:'40', tm:'72', th:'230', layers:[
+      L('d','bloom','solid-brightness',16,80,18),
+      L('s','surface','random-gradient',89,100,0),
+      L('m','forest','solid-brightness',12,88,0,{sg:true}),
+      L('h','sunset','solid-brightness',10,90,22),
+      L('b','sunset','solid-brightness',12,95,14),
+    ]}
+  },
+  { // ── Second · video ──
+    source:'video',
+    noise:{ speed:0.5, scale:6, detail:3, contrast:40 },
+    preset:{ bgc:'#ededed', td:'19', ts:'55', tm:'180', th:'230', layers:[
+      L('d','custom','solid',40,100,0,{c1:'#f2f2f2',sw:'1',sc:'#d4d4d4'}),
+      L('s','surface','gradient-cell',40,87,0),
+      L('m','forest','solid',40,88,0,{sg:true}),
+      L('h','sunset','solid-brightness',40,90,0),
+      L('b','sunset','solid-brightness',40,95,0),
+    ]}
+  },
+  { // ── Third · video ──
+    source:'video',
+    noise:{ speed:0.4, scale:5, detail:2, contrast:55 },
+    preset:{ bgc:'#ededed', td:'0', ts:'57', tm:'118', th:'255', layers:[
+      L('d','custom','solid',40,100,0,{c1:'#f2f2f2',sw:'1',sc:'#d4d4d4',en:false}),
+      L('s','sunset','random-gradient',25,87,0,{sg:true}),
+      L('m','surface','random-gradient',25,88,0,{sg:true}),
+      L('h','bloom','random-gradient',25,90,0,{sg:true}),
+      L('b','forest','solid-brightness',40,95,0),
+    ]}
+  },
 ];
 
-// ══ State ═════════════════════════════════════════════════════════════════════
-const canvas = document.getElementById('output-canvas');
-const ctx = canvas.getContext('2d');
-const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
-let src = null;        // img or video element
-let inType = 'img';
-let offC = null, offX = null;
-let scat = {};         // { s:[], m:[], h:[] }
-let liveRAF = null;
-let txtLayers = [], selTxt = -1, customFont = null;
+/* Content section id → state index */
+const SECTION_MAP = {
+  'section-hero':    0,
+  'section-wl01':    0,
+  'section-wl02':    1,
+  'section-closing': 2,
+};
 
-// ── Pattern canvas ────────────────────────────────────────────────────────────
-const PAT_RES = 256;  // internal resolution — scaled to output by drawImage
-let patC = null, patX = null, patStart = null;
+/* ══ Canvas setup ═════════════════════════════════════════════════ */
+const CW = 440, CH = 550;
+const cv = document.getElementById('cv');
+const mainCtx = cv.getContext('2d');
+cv.width = CW; cv.height = CH;
 
-function ensurePat() {
-  if (!patC) {
-    patC = document.createElement('canvas');
-    patC.width = PAT_RES; patC.height = PAT_RES;
-    patX = patC.getContext('2d', { willReadFrequently: true });
-  }
+/* Pixel-sampling buffer (source is drawn here, then read) */
+const pixOff = document.createElement('canvas'); pixOff.width = CW; pixOff.height = CH;
+const pixCtx = pixOff.getContext('2d', { willReadFrequently: true });
+
+/* ══ Procedural noise (value-noise fBm) ═══════════════════════════ */
+const NW = 110, NH = 138;                 // low-res noise buffer (4:5)
+const noiseLow = document.createElement('canvas'); noiseLow.width = NW; noiseLow.height = NH;
+const noiseLowCtx = noiseLow.getContext('2d');
+const noiseImg = noiseLowCtx.createImageData(NW, NH);
+
+const NGRID = 64;                          // power of 2 for wrap mask
+const NMASK = NGRID - 1;
+const nvals = new Float32Array(NGRID * NGRID);
+for (let i = 0; i < nvals.length; i++) nvals[i] = Math.random();
+
+function vnoise(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y);
+  const xf = x - xi, yf = y - yi;
+  const u = xf*xf*(3-2*xf), v = yf*yf*(3-2*yf);
+  const x0 = xi & NMASK, x1 = (xi+1) & NMASK;
+  const y0 = (yi & NMASK)*NGRID, y1 = ((yi+1) & NMASK)*NGRID;
+  const a = nvals[y0+x0], b = nvals[y0+x1], c = nvals[y1+x0], d = nvals[y1+x1];
+  return (a*(1-u)+b*u)*(1-v) + (c*(1-u)+d*u)*v;
 }
-
-function drawPattern(ts) {
-  if (patStart === null) patStart = ts;
-  const t = (ts - patStart) / 1000;
-  ensurePat();
-  const W = PAT_RES, H = PAT_RES;
-  const cx = W / 2, cy = H / 2;
-  const speed   = parseFloat(gv('pat-speed'))   || 0.5;
-  const spacing = parseFloat(gv('pat-spacing')) || 60;
-  const sharp   = clamp(parseFloat(gv('pat-sharp')) || 30, 0, 95) / 100;
-  const inward  = document.getElementById('pat-dir')?.checked;
-  const phase   = t * speed * (inward ? -1 : 1);
-  const exp     = 1 / (1 - sharp);
-
-  const img = patX.createImageData(W, H);
-  const d   = img.data;
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const dx = x - cx, dy = y - cy;
-      const r  = Math.sqrt(dx * dx + dy * dy);
-      // position within one ring cycle (0..1), animated by phase
-      const norm = ((r / spacing - phase) % 1 + 1) % 1;
-      // sine wave, then sharpened with a power curve
-      let v = (Math.sin(norm * Math.PI * 2) + 1) * 0.5;
-      v = v > 0.5
-        ? 1 - Math.pow(2 * (1 - v), exp) * 0.5
-        : Math.pow(2 * v, exp) * 0.5;
-      const b = v * 255 | 0;
-      const i = (y * W + x) * 4;
-      d[i] = d[i+1] = d[i+2] = b; d[i+3] = 255;
+function fbm(x, y, oct) {
+  let amp = 1, freq = 1, sum = 0, norm = 0;
+  for (let o = 0; o < oct; o++) { sum += amp*vnoise(x*freq, y*freq); norm += amp; amp *= 0.5; freq *= 2; }
+  return sum / norm;
+}
+function drawNoise(np, t) {
+  const sf = (+np.scale || 6) / NW;                 // feature size across width
+  const sp = +np.speed || 0;
+  const oct = clamp(Math.round(+np.detail || 3), 1, 5);
+  const k = 1 + (+np.contrast || 0) / 25;            // contrast multiplier 1..5
+  const ox = t * sp * 0.45, oy = t * sp * 0.27;      // diagonal drift
+  const d = noiseImg.data;
+  let p = 0;
+  for (let y = 0; y < NH; y++) {
+    for (let x = 0; x < NW; x++) {
+      let n = fbm(x*sf + ox, y*sf + oy, oct);
+      n = clamp(0.5 + (n - 0.5) * k, 0, 1);
+      const val = (n * 255) | 0;
+      d[p] = d[p+1] = d[p+2] = val; d[p+3] = 255;
+      p += 4;
     }
   }
-  patX.putImageData(img, 0, 0);
+  noiseLowCtx.putImageData(noiseImg, 0, 0);
 }
-let cvScale = 1;
 
-// ══ Build layer UI ════════════════════════════════════════════════════════════
-function buildLayerUI(l) {
-  const body = document.getElementById(l.body);
-  const thOpts = Object.entries(THEMES).map(([k,v]) =>
-    `<option value="${k}"${k===l.theme?' selected':''}>${v.name}</option>`).join('');
-  const modeBtn = (id, label, mode) =>
-    `<div class="chip${l.mode===mode?' on':''}" data-mode="${mode}" data-lid="${id}" onclick="setMode('${id}','${mode}')">${label}</div>`;
+/* ══ Hidden video elements (one per section) ══════════════════════ */
+const vids = [];
+for (let i = 0; i < 3; i++) {
+  const v = document.createElement('video');
+  v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto';
+  v.style.display = 'none';
+  document.body.appendChild(v);
+  vids[i] = v;
+}
+/* Seed sections 2 & 3 with their videos until the user uploads a replacement */
+function seedVideo(i, src){ vids[i].src = src; vids[i].play().catch(()=>{}); }
+seedVideo(1, './media/weavy2.mp4');
+seedVideo(2, './media/weavy3.mp4');
 
-  body.innerHTML = `
-    <div class="field"><label class="lbl">Color theme</label>
-      <select id="${l.id}th" onchange="onTheme('${l.id}')">
-        ${thOpts}
-      </select>
-      <div class="swatch" id="${l.id}swc"></div>
+/* ══ Scatter cache (rebuilt when ps/dn/jt of a layer change) ══════ */
+const SCAT = {};
+function buildScat(ps, dn, jt, W, H) {
+  const step = ps, maxJ = step * (jt/100) * .5, pts = [];
+  for (let cy = step*.5; cy < H+step; cy += step)
+    for (let cx = step*.5; cx < W+step; cx += step) {
+      if (Math.random()*100 > dn) continue;
+      pts.push({ rx: cx+(Math.random()-.5)*2*maxJ, ry: cy+(Math.random()-.5)*2*maxJ, ga: Math.random()*Math.PI*2 });
+    }
+  return pts;
+}
+function getScat(idx, l) {
+  const key = idx + '_' + l.id;
+  const sig = l.ps + '_' + l.dn + '_' + l.jt;
+  let e = SCAT[key];
+  if (!e || e.sig !== sig) { e = { sig, pts: buildScat(+l.ps||30, +l.dn||100, +l.jt||0, CW, CH) }; SCAT[key] = e; }
+  return e.pts;
+}
+function ensureScatter(idx){ STATES[idx].preset.layers.forEach(l => getScat(idx, l)); }
+
+/* ══ Aesthetic snapshot (the part that tweens) ════════════════════
+   Colours stored as [r,g,b] arrays so they can be re-interpolated. */
+function resolveColors(l){
+  if (l.theme && l.theme !== 'custom') return [THEMES[l.theme].c1, THEMES[l.theme].c2];
+  return [l.c1 || '#ffffff', l.c2 || '#000000'];
+}
+function aesOf(st){
+  const p = st.preset;
+  return {
+    bg: hexRgb(p.bgc || '#000000'),
+    td:+p.td||0, ts:+p.ts||55, tm:+p.tm||130, th:+p.th||210,
+    layers: p.layers.map(l => { const [a,b] = resolveColors(l); return { c1:hexRgb(a), c2:hexRgb(b), sw:+l.sw||0 }; })
+  };
+}
+function lerpAes(A, B, t){
+  const lf = (a,b)=>a+(b-a)*t;
+  const lc = (a,b)=>[lf(a[0],b[0]),lf(a[1],b[1]),lf(a[2],b[2])];
+  return {
+    bg: lc(A.bg,B.bg), td:lf(A.td,B.td), ts:lf(A.ts,B.ts), tm:lf(A.tm,B.tm), th:lf(A.th,B.th),
+    layers: B.layers.map((bl,i)=>{ const al = A.layers[i] || bl; return { c1:lc(al.c1,bl.c1), c2:lc(al.c2,bl.c2), sw:lf(al.sw,bl.sw) }; })
+  };
+}
+
+/* ══ Transition state ═════════════════════════════════════════════
+   Structural params (ps/dn/jt/mode/en) snap to the target instantly;
+   aesthetic params tween from the displayed snapshot to the target. */
+const TWEEN_MS = 900;
+let liveIdx = 0;
+let tweening = false, tweenStart = 0;
+let fromAes = aesOf(STATES[0]), toAes = aesOf(STATES[0]), curAes = aesOf(STATES[0]);
+
+function transitionTo(idx){
+  if (idx === liveIdx && !tweening) return;
+  fromAes = curAes;                 // start from whatever is on screen right now
+  liveIdx = idx;
+  toAes = aesOf(STATES[idx]);
+  ensureScatter(idx);
+  tweenStart = performance.now();
+  tweening = true;
+  updateLiveTabUI();
+}
+
+/* ══ Renderer ═════════════════════════════════════════════════════ */
+function renderFrame(aes, px){
+  const st = STATES[liveIdx];
+  mainCtx.fillStyle = rgbStr(aes.bg);
+  mainCtx.fillRect(0, 0, CW, CH);
+
+  const tDk = aes.td, tSh = aes.ts, tMi = aes.tm, tHi = aes.th;
+  const bnd = { d:[0,tDk], s:[tDk,tSh], m:[tSh,tMi], h:[tMi,tHi], b:[tHi,256] };
+
+  st.preset.layers.forEach((l, li) => {
+    if (l.en === false) return;
+    const [lo, hi] = bnd[l.id] || [0,256];
+    const ps = +l.ps||30, mode = l.mode||'solid', sw = aes.layers[li].sw, sc = l.sc||'#000';
+    const c1 = rgbStr(aes.layers[li].c1), c2 = rgbStr(aes.layers[li].c2);
+    const pts = getScat(liveIdx, l);
+
+    const active = pts.filter(({rx,ry}) => {
+      const sx = clamp(~~rx,0,CW-1), sy = clamp(~~ry,0,CH-1), i = (sy*CW+sx)*4;
+      const b = .299*px[i]+.587*px[i+1]+.114*px[i+2];
+      return b >= lo && b < hi;
+    });
+    if (!active.length) return;
+
+    active.forEach(({rx,ry,ga}) => {
+      const sx = clamp(~~rx,0,CW-1), sy = clamp(~~ry,0,CH-1), i = (sy*CW+sx)*4;
+      const bri = .299*px[i]+.587*px[i+1]+.114*px[i+2];
+      const half = ps/2, x = rx-half, y = ry-half;
+      if (mode === 'solid') { mainCtx.fillStyle = c1; }
+      else if (mode === 'gradient-cell') {
+        const g = mainCtx.createLinearGradient(x,y,x+ps,y+ps);
+        g.addColorStop(0,c1); g.addColorStop(1,c2); mainCtx.fillStyle = g;
+      } else if (mode === 'solid-brightness') {
+        const a = aes.layers[li].c1, b = aes.layers[li].c2, tt = bri/255;
+        mainCtx.fillStyle = `rgb(${(a[0]+(b[0]-a[0])*tt)|0},${(a[1]+(b[1]-a[1])*tt)|0},${(a[2]+(b[2]-a[2])*tt)|0})`;
+      } else {
+        const cos = Math.cos(ga)*ps, sin = Math.sin(ga)*ps;
+        const g = mainCtx.createLinearGradient(rx-cos/2,ry-sin/2,rx+cos/2,ry+sin/2);
+        g.addColorStop(0,c1); g.addColorStop(1,c2); mainCtx.fillStyle = g;
+      }
+      mainCtx.fillRect(x,y,ps,ps);
+    });
+
+    if (sw > 0 && !l.sg) {
+      mainCtx.strokeStyle = sc; mainCtx.lineWidth = sw;
+      active.forEach(({rx,ry}) => mainCtx.strokeRect(rx-ps/2,ry-ps/2,ps,ps));
+    }
+  });
+}
+
+/* ══ Source sampling ══════════════════════════════════════════════ */
+function samplePixels(tSec){
+  const st = STATES[liveIdx];
+  let drew = false;
+  if (st.source === 'video') {
+    const v = vids[liveIdx];
+    if (v && v.readyState >= 2 && !v.ended && v.videoWidth) { pixCtx.drawImage(v, 0, 0, CW, CH); drew = true; }
+  }
+  if (!drew) { drawNoise(st.noise, tSec); pixCtx.drawImage(noiseLow, 0, 0, CW, CH); }
+  return pixCtx.getImageData(0, 0, CW, CH).data;
+}
+
+/* ══ Render loop ══════════════════════════════════════════════════ */
+function frame(ts){
+  requestAnimationFrame(frame);
+  const tSec = ts / 1000;
+
+  if (tweening) {
+    const t = clamp((ts - tweenStart) / TWEEN_MS, 0, 1);
+    curAes = lerpAes(fromAes, toAes, easeIO(t));
+    if (t >= 1) tweening = false;
+  } else {
+    curAes = aesOf(STATES[liveIdx]);   // read live so panel edits reflect instantly
+  }
+
+  const px = samplePixels(tSec);
+  renderFrame(curAes, px);
+}
+requestAnimationFrame(frame);
+
+/* ══ Scroll-driven section changes ════════════════════════════════ */
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const idx = SECTION_MAP[e.target.id];
+      if (idx !== undefined) transitionTo(idx);
+    }
+  });
+}, { threshold: 0.15 });
+Object.keys(SECTION_MAP).forEach(id => {
+  const el = document.getElementById(id);
+  if (el) observer.observe(el);
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   ░░ Settings panel ░░
+   Edits write straight into STATES[curTab]; the live section reads
+   STATES every frame, so changes appear immediately.
+   ══════════════════════════════════════════════════════════════════ */
+const panel = document.getElementById('panel');
+const panelBody = document.getElementById('panel-body');
+let curTab = 0;
+
+document.getElementById('panel-toggle').addEventListener('click', () => panel.classList.toggle('hidden'));
+document.getElementById('panel-close').addEventListener('click', () => panel.classList.add('hidden'));
+
+document.querySelectorAll('.stab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    curTab = +tab.dataset.i;
+    document.querySelectorAll('.stab').forEach(t => t.classList.toggle('on', t === tab));
+    buildPanel();
+    transitionTo(curTab);   // preview the section you're editing
+  });
+});
+
+function updateLiveTabUI(){
+  document.querySelectorAll('.stab').forEach(t => t.classList.toggle('live', +t.dataset.i === liveIdx));
+}
+
+/* — small builders — */
+function rangeField(label, k, val, min, max, step){
+  return `<div class="pfield"><label>${label}</label>
+    <div class="prow">
+      <input type="range" data-k="${k}" min="${min}" max="${max}" step="${step||1}" value="${val}">
+      <span class="val" id="val-${k.replace(/\./g,'_')}">${val}</span>
+    </div></div>`;
+}
+
+function buildPanel(){
+  const st = STATES[curTab];
+  const p = st.preset;
+  let html = '';
+
+  /* Source */
+  html += `<div class="pblock"><div class="pblock-title">Source</div>
+    <div class="radio-row">
+      <label><input type="radio" name="src" data-k="source" value="noise" ${st.source==='noise'?'checked':''}><span>Noise</span></label>
+      <label><input type="radio" name="src" data-k="source" value="video" ${st.source==='video'?'checked':''}><span>Video</span></label>
     </div>
-    <div id="${l.id}cc" style="display:none" class="field">
-      <label class="lbl">From → To</label>
-      <div class="row">
-        <input type="color" id="${l.id}c1" value="${THEMES.custom.c1}" oninput="onTheme('${l.id}')">
-        <div style="flex:1;height:14px;border-radius:3px" id="${l.id}gm"></div>
-        <input type="color" id="${l.id}c2" value="${THEMES.custom.c2}" oninput="onTheme('${l.id}')">
+    <div id="src-noise" style="margin-top:10px;${st.source==='noise'?'':'display:none'}">
+      ${rangeField('Speed','noise.speed',st.noise.speed,0,3,0.05)}
+      ${rangeField('Scale','noise.scale',st.noise.scale,2,24,1)}
+      ${rangeField('Detail','noise.detail',st.noise.detail,1,5,1)}
+      ${rangeField('Contrast','noise.contrast',st.noise.contrast,0,100,1)}
+    </div>
+    <div id="src-video" style="margin-top:10px;${st.source==='video'?'':'display:none'}">
+      <input class="file-in" type="file" accept="video/*" data-vidup="${curTab}">
+      <div class="vid-status" id="vid-status">${videoStatus(curTab)}</div>
+    </div>
+  </div>`;
+
+  /* Background + thresholds */
+  html += `<div class="pblock"><div class="pblock-title">Tone</div>
+    <div class="pfield"><label>Background</label>
+      <div class="prow"><input type="color" data-k="bgc" value="${p.bgc}"><span class="val">${p.bgc}</span></div></div>
+    ${rangeField('Dark','td',p.td,0,255,1)}
+    ${rangeField('Shadow','ts',p.ts,0,255,1)}
+    ${rangeField('Midtone','tm',p.tm,0,255,1)}
+    ${rangeField('Highlight','th',p.th,0,255,1)}
+  </div>`;
+
+  /* Layers */
+  p.layers.forEach((l, i) => {
+    const thOpts = Object.entries(THEMES).map(([key,v]) =>
+      `<option value="${key}" ${key===l.theme?'selected':''}>${v.name}</option>`).join('');
+    const chips = MODES.map(([m,lab]) =>
+      `<div class="chip ${l.mode===m?'on':''}" data-mode="${m}" data-li="${i}">${lab}</div>`).join('');
+    html += `<div class="pblock" style="padding:10px 14px">
+      <div class="layer">
+        <div class="layer-head ${l.en?'':'off'}" data-toggle="${i}">
+          <label class="tog" onclick="event.stopPropagation()">
+            <input type="checkbox" data-k="L${i}.en" ${l.en?'checked':''}><span class="ts"></span></label>
+          <span class="lname">${LAYER_NAMES[l.id]}</span>
+          <span class="arc">▾</span>
+        </div>
+        <div class="layer-body" data-body="${i}">
+          <div class="pfield"><label>Theme</label>
+            <select data-k="L${i}.theme">${thOpts}</select></div>
+          <div class="pfield" data-custom="${i}" style="${l.theme==='custom'?'':'display:none'}">
+            <label>Custom colours</label>
+            <div class="prow">
+              <input type="color" data-k="L${i}.c1" value="${l.c1}">
+              <input type="color" data-k="L${i}.c2" value="${l.c2}">
+            </div>
+          </div>
+          <div class="pfield"><label>Mode</label><div class="chips" data-chips="${i}">${chips}</div></div>
+          ${rangeField('Pixel size','L'+i+'.ps',l.ps,2,120,1)}
+          ${rangeField('Density','L'+i+'.dn',l.dn,5,100,1)}
+          ${rangeField('Jitter','L'+i+'.jt',l.jt,0,100,1)}
+          <div class="pfield"><label>Stroke</label>
+            <div class="prow">
+              <input type="color" data-k="L${i}.sc" value="${l.sc}">
+              <input type="range" data-k="L${i}.sw" min="0" max="20" step="1" value="${l.sw}">
+              <span class="val" id="val-L${i}_sw">${l.sw}</span>
+            </div></div>
+        </div>
       </div>
-    </div>
-    <div class="field"><label class="lbl">Color mode</label>
-      <div class="chips" id="${l.id}chips">
-        ${modeBtn(l.id,'Solid','solid')}
-        ${modeBtn(l.id,'Gradient','gradient-cell')}
-        ${modeBtn(l.id,'Brightness','solid-brightness')}
-        ${modeBtn(l.id,'Random ↔','random-gradient')}
-      </div>
-    </div>
-    <div class="field"><label class="lbl">Pixel size</label>
-      <div class="row"><input type="range" id="${l.id}ps" min="2" max="120" value="${l.ps}" oninput="sn(this,'${l.id}nps');isc('${l.id}');render()">
-      <input type="number" id="${l.id}nps" min="2" max="120" value="${l.ps}" oninput="sr(this,'${l.id}ps');isc('${l.id}');render()"></div>
-    </div>
-    <div class="field"><label class="lbl">Density <span style="color:#bbb;font-weight:400">(% of grid filled)</span></label>
-      <div class="row"><input type="range" id="${l.id}dn" min="5" max="100" value="${l.den}" oninput="sn(this,'${l.id}ndn');isc('${l.id}');render()">
-      <input type="number" id="${l.id}ndn" min="5" max="100" value="${l.den}" oninput="sr(this,'${l.id}dn');isc('${l.id}');render()"></div>
-    </div>
-    <div class="field"><label class="lbl">Jitter <span style="color:#bbb;font-weight:400">(0 = perfect grid)</span></label>
-      <div class="row"><input type="range" id="${l.id}jt" min="0" max="100" value="${l.jit}" oninput="sn(this,'${l.id}njt');isc('${l.id}');render()">
-      <input type="number" id="${l.id}njt" min="0" max="100" value="${l.jit}" oninput="sr(this,'${l.id}jt');isc('${l.id}');render()"></div>
-    </div>
-    <hr class="div">
-    <div class="field"><label class="lbl">Stroke color + weight</label>
-      <div class="row"><input type="color" id="${l.id}sc" value="${l.sc}" oninput="render()">
-      <input type="range" id="${l.id}sw" min="0" max="20" value="${l.sw}" oninput="sn(this,'${l.id}nsw');render()">
-      <input type="number" id="${l.id}nsw" min="0" max="20" value="${l.sw}" oninput="sr(this,'${l.id}sw');render()" style="width:38px"></div>
-    </div>
-    <div class="tog-row">
-      <span style="font-size:11px">Stroke groups <span style="color:#bbb;font-size:10px">(outline overlapping cells)</span></span>
-      <label class="tog"><input type="checkbox" id="${l.id}sg"${l.sg?' checked':''} onchange="render()"><span class="ts"></span></label>
-    </div>
-  `;
-  updSwatch(l.id);
-}
-
-function onTheme(id) {
-  const t = gv(id+'th');
-  document.getElementById(id+'cc').style.display = t==='custom'?'block':'none';
-  updSwatch(id);
-  render();
-}
-
-function updSwatch(id) {
-  const [c1,c2] = getColors(id);
-  document.getElementById(id+'swc').style.background = `linear-gradient(135deg,${c1},${c2})`;
-  const gm = document.getElementById(id+'gm');
-  if (gm) gm.style.background = `linear-gradient(90deg,${c1},${c2})`;
-}
-
-function onLayerToggle(cb, id) {
-  const sh = cb.closest('.sh');
-  if (sh) sh.classList.toggle('off', !cb.checked);
-  render();
-}
-
-function setMode(id, mode) {
-  document.querySelectorAll(`#${id}chips .chip`).forEach(c=>c.classList.remove('on'));
-  const chip = document.querySelector(`#${id}chips .chip[data-mode="${mode}"]`);
-  if (chip) chip.classList.add('on');
-  render();
-}
-
-function getMode(id) {
-  const a = document.querySelector(`#${id}chips .chip.on`);
-  return a?.dataset.mode || 'solid';
-}
-
-function getColors(id) {
-  const t = gv(id+'th');
-  if (t==='custom') return [gv(id+'c1')||'#ffffff', gv(id+'c2')||'#000000'];
-  return [THEMES[t].c1, THEMES[t].c2];
-}
-
-// ══ Scatter (grid with jitter) ════════════════════════════════════════════════
-function isc(id) { scat[id] = null; }
-function iscAll() { LAYERS.forEach(l=>scat[l.id]=null); }
-
-function ensureScat(id, W, H) {
-  if (scat[id]) return;
-  const ps  = +gv(id+'ps') || 30;
-  const den = +gv(id+'dn') || 100;
-  const jit = +gv(id+'jt') || 0;
-  const step = ps;
-  const maxJ = step * (jit/100) * 0.5; // half-cell max displacement
-  const pts = [];
-  // Regular grid starting from half-step so cells are centered in cells
-  for (let cy = step*0.5; cy < H + step; cy += step) {
-    for (let cx = step*0.5; cx < W + step; cx += step) {
-      if (Math.random()*100 > den) continue;
-      pts.push({
-        rx: cx + (Math.random()-.5)*2*maxJ,
-        ry: cy + (Math.random()-.5)*2*maxJ,
-        ga: Math.random()*Math.PI*2,
-      });
-    }
-  }
-  scat[id] = pts;
-}
-
-function regenerate() { iscAll(); render(); }
-
-// ══ Randomize ═════════════════════════════════════════════════════════════════
-function rcheck(id) { return document.getElementById(id)?.checked; }
-function rInt(min, max) { return Math.floor(Math.random()*(max-min+1))+min; }
-function rPick(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
-function rHex() { return '#'+[0,0,0].map(()=>rInt(0,255).toString(16).padStart(2,'0')).join(''); }
-function sset(id, v) { const el=document.getElementById(id); if(el){ el.value=v; el.dispatchEvent(new Event('input')); } }
-
-function randomizeAll() {
-  const themeKeys = Object.keys(THEMES);
-  const modes = ['solid','gradient-cell','solid-brightness','random-gradient'];
-
-  // Thresholds — keep ascending order
-  if (rcheck('rz-tz')) {
-    const vals = [rInt(0,40), rInt(30,80), rInt(70,160), rInt(150,240)].sort((a,b)=>a-b);
-    sset('td', vals[0]); sset('ntd', vals[0]);
-    sset('ts', vals[1]); sset('nts', vals[1]);
-    sset('tm', vals[2]); sset('ntm', vals[2]);
-    sset('th', vals[3]); sset('nth', vals[3]);
-  }
-
-  // Background
-  if (rcheck('rz-bg')) {
-    document.getElementById('bgc').value = rHex();
-  }
-
-  // Per-layer parameters
-  LAYERS.forEach(l => {
-    if (rcheck('rz-ps')) { const v=rInt(4,80); sset(l.id+'ps',v); sset(l.id+'nps',v); isc(l.id); }
-    if (rcheck('rz-dn')) { const v=rInt(40,100); sset(l.id+'dn',v); sset(l.id+'ndn',v); isc(l.id); }
-    if (rcheck('rz-jt')) { const v=rInt(0,60); sset(l.id+'jt',v); sset(l.id+'njt',v); isc(l.id); }
-    if (rcheck('rz-sw')) { const v=rInt(0,4); sset(l.id+'sw',v); sset(l.id+'nsw',v); }
-    if (rcheck('rz-th')) {
-      const t=rPick(themeKeys);
-      const el=document.getElementById(l.id+'th');
-      if(el){ el.value=t; onTheme(l.id); }
-      // Also randomize custom colors for this layer
-      document.getElementById(l.id+'c1').value = rHex();
-      document.getElementById(l.id+'c2').value = rHex();
-      updSwatch(l.id);
-    }
-    if (rcheck('rz-md')) {
-      setMode(l.id, rPick(modes));
-    }
+    </div>`;
   });
 
-  render();
-  showPresetInfo('🎲 Randomized!');
+  panelBody.innerHTML = html;
+  updateLiveTabUI();
 }
 
-// ══ Colour helpers ════════════════════════════════════════════════════════════
-function hexRgb(h) { return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]; }
-function lerpHex(c1,c2,t) {
-  const [r1,g1,b1]=hexRgb(c1),[r2,g2,b2]=hexRgb(c2);
-  return `rgb(${~~(r1+(r2-r1)*t)},${~~(g1+(g2-g1)*t)},${~~(b1+(b2-b1)*t)})`;
+function videoStatus(i){
+  const v = vids[i];
+  if (!v || !v.src) return 'No video loaded';
+  if (v.readyState >= 2) return 'Video ready';
+  return 'Loading…';
 }
-function hexA(h,a) { const [r,g,b]=hexRgb(h); return `rgba(${r},${g},${b},${a/100})`; }
 
-// ══ Draw one cell ══════════════════════════════════════════════════════════════
-function drawCell(rx, ry, ps, mode, c1, c2, bri, ga) {
-  const half=ps/2, x=rx-half, y=ry-half;
-  if (mode==='solid') {
-    ctx.fillStyle = c1;
-  } else if (mode==='gradient-cell') {
-    const g=ctx.createLinearGradient(x,y,x+ps,y+ps);
-    g.addColorStop(0,c1); g.addColorStop(1,c2);
-    ctx.fillStyle=g;
-  } else if (mode==='solid-brightness') {
-    ctx.fillStyle = lerpHex(c1,c2,bri/255);
-  } else { // random-gradient
-    const cos=Math.cos(ga)*ps, sin=Math.sin(ga)*ps;
-    const g=ctx.createLinearGradient(rx-cos/2,ry-sin/2,rx+cos/2,ry+sin/2);
-    g.addColorStop(0,c1); g.addColorStop(1,c2);
-    ctx.fillStyle=g;
+/* — write a value into STATES[curTab] given a data-k path — */
+function setK(k, val){
+  const st = STATES[curTab];
+  if (k === 'source') { st.source = val; }
+  else if (k.startsWith('noise.')) { st.noise[k.slice(6)] = +val; }
+  else if (k.startsWith('L')) {
+    const m = k.match(/^L(\d+)\.(.+)$/);
+    const l = st.preset.layers[+m[1]];
+    const f = m[2];
+    if (f === 'en') l.en = val;
+    else l[f] = val;
+  } else {
+    st.preset[k] = val;   // bgc / td / ts / tm / th
   }
-  ctx.fillRect(x,y,ps,ps);
 }
 
-// ══ Render one layer (handles both stroke modes) ════════════════════════════
-function renderLayer(l, W, H, pixels) {
-  if (!document.getElementById(l.id+'en')?.checked) return;
-  const tDk=+gv('td'), tSh=+gv('ts'), tMi=+gv('tm'), tHi=+gv('th');
-  const bounds = { d:[0,tDk], s:[tDk,tSh], m:[tSh,tMi], h:[tMi,tHi], b:[tHi,256] };
-  const [minB,maxB] = bounds[l.id];
+/* — delegated input handling — */
+panelBody.addEventListener('input', e => {
+  const el = e.target;
+  const k = el.dataset.k;
+  if (!k) return;
 
-  ensureScat(l.id, W, H);
-  const pts = scat[l.id];
-  const ps   = +gv(l.id+'ps') || 30;
-  const sw   = +gv(l.id+'sw');
-  const sc   = gv(l.id+'sc');
-  const mode = getMode(l.id);
-  const [c1,c2] = getColors(l.id);
-  const useGroupStroke = sw>0 && document.getElementById(l.id+'sg')?.checked;
+  if (el.type === 'checkbox') { setK(k, el.checked); }
+  else if (el.type === 'radio') {
+    if (!el.checked) return;
+    setK(k, el.value);
+    document.getElementById('src-noise').style.display = el.value==='noise' ? 'block' : 'none';
+    document.getElementById('src-video').style.display = el.value==='video' ? 'block' : 'none';
+  }
+  else { setK(k, el.value); }
 
-  // Filter pts matching threshold
-  const active = pts.filter(({rx,ry}) => {
-    const sx=clamp(Math.round(rx),0,W-1), sy=clamp(Math.round(ry),0,H-1);
-    const i=(sy*W+sx)*4;
-    const br=0.299*pixels[i]+0.587*pixels[i+1]+0.114*pixels[i+2];
-    return br>=minB && br<maxB;
-  });
-  if (!active.length) return;
+  // live value readout
+  const vid = document.getElementById('val-' + k.replace(/\./g,'_'));
+  if (vid) vid.textContent = el.value;
 
-  // ── Draw fills ──────────────────────────────────────────────────────────────
-  active.forEach(({rx,ry,ga}) => {
-    const sx=clamp(Math.round(rx),0,W-1), sy=clamp(Math.round(ry),0,H-1);
-    const i=(sy*W+sx)*4;
-    const bri=0.299*pixels[i]+0.587*pixels[i+1]+0.114*pixels[i+2];
-    drawCell(rx,ry,ps,mode,c1,c2,bri,ga);
-  });
+  // toggle custom-colour row when theme changes
+  const tm = k.match(/^L(\d+)\.theme$/);
+  if (tm) {
+    const row = panelBody.querySelector(`[data-custom="${tm[1]}"]`);
+    if (row) row.style.display = el.value==='custom' ? 'block' : 'none';
+  }
+  // layer enable dims the header
+  const em = k.match(/^L(\d+)\.en$/);
+  if (em) {
+    const head = panelBody.querySelector(`[data-toggle="${em[1]}"]`);
+    if (head) head.classList.toggle('off', !el.checked);
+  }
+});
 
-  if (sw===0) return;
-
-  if (!useGroupStroke) {
-    // ── Per-cell stroke ─────────────────────────────────────────────────────
-    ctx.strokeStyle = sc;
-    ctx.lineWidth = sw;
-    active.forEach(({rx,ry}) => ctx.strokeRect(rx-ps/2,ry-ps/2,ps,ps));
+/* — clicks: mode chips, layer collapse — */
+panelBody.addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (chip) {
+    const i = chip.dataset.li, mode = chip.dataset.mode;
+    STATES[curTab].preset.layers[+i].mode = mode;
+    panelBody.querySelectorAll(`[data-chips="${i}"] .chip`).forEach(c => c.classList.toggle('on', c === chip));
     return;
   }
-
-  // ── Group stroke: rasterise mask → edge detect → draw outline ─────────────
-  const maskC = document.createElement('canvas');
-  maskC.width=W; maskC.height=H;
-  const mX=maskC.getContext('2d');
-  mX.fillStyle='#fff';
-  active.forEach(({rx,ry})=>mX.fillRect(rx-ps/2,ry-ps/2,ps,ps));
-  const mask = mX.getImageData(0,0,W,H).data;
-
-  const strkC = document.createElement('canvas');
-  strkC.width=W; strkC.height=H;
-  const sX=strkC.getContext('2d');
-  const sImg=sX.createImageData(W,H);
-  const [sr,sg2,sb2]=hexRgb(sc);
-  const r=Math.max(1,Math.ceil(sw/2));
-
-  for (let y=0;y<H;y++) {
-    for (let x=0;x<W;x++) {
-      const i=(y*W+x)*4;
-      if (mask[i+3]===0) continue; // not filled
-      let edge=false;
-      outer: for (let dy=-r;dy<=r;dy++) {
-        for (let dx=-r;dx<=r;dx++) {
-          const nx=x+dx, ny=y+dy;
-          if (nx<0||nx>=W||ny<0||ny>=H||mask[(ny*W+nx)*4+3]===0) { edge=true; break outer; }
-        }
-      }
-      if (edge) { sImg.data[i]=sr; sImg.data[i+1]=sg2; sImg.data[i+2]=sb2; sImg.data[i+3]=255; }
-    }
+  const head = e.target.closest('.layer-head');
+  if (head && !e.target.closest('.tog')) {
+    const body = panelBody.querySelector(`[data-body="${head.dataset.toggle}"]`);
+    if (body) body.classList.toggle('op');
   }
-  sX.putImageData(sImg,0,0);
-  ctx.drawImage(strkC,0,0);
-}
-
-// ══ Main render ═══════════════════════════════════════════════════════════════
-function render() {
-  const W=canvas.width, H=canvas.height;
-  ctx.fillStyle = gv('bgc')||'#000';
-  ctx.fillRect(0,0,W,H);
-
-  if (!src) {
-    ctx.fillStyle='#555'; ctx.font='bold 15px sans-serif'; ctx.textAlign='center';
-    ctx.fillText('Upload an image or video to get started',W/2,H/2);
-    ctx.textAlign='left'; return;
-  }
-
-  // Sync offscreen canvas (gets current video frame if src is video)
-  if (!offC||offC.width!==W||offC.height!==H) {
-    offC=document.createElement('canvas'); offC.width=W; offC.height=H;
-    offX=offC.getContext('2d'); iscAll();
-  }
-  offX.drawImage(src,0,0,W,H);
-  const pixels = offX.getImageData(0,0,W,H).data;
-
-  LAYERS.forEach(l => renderLayer(l, W, H, pixels));
-
-  // Reference overlay
-  const ra=+gv('ref');
-  if (ra>0) { ctx.globalAlpha=ra/100; ctx.drawImage(src,0,0,W,H); ctx.globalAlpha=1; }
-}
-
-// ══ Input ═════════════════════════════════════════════════════════════════════
-function switchInput(t) {
-  if (inType === 'pat' && t !== 'pat') stopLive(); // stop pattern loop when leaving
-  inType = t;
-  document.getElementById('ti').classList.toggle('on', t==='img');
-  document.getElementById('tv').classList.toggle('on', t==='vid');
-  document.getElementById('tp').classList.toggle('on', t==='pat');
-  document.getElementById('ii').style.display = t==='img' ? 'block' : 'none';
-  document.getElementById('iv').style.display = t==='vid' ? 'block' : 'none';
-  document.getElementById('ip').style.display = t==='pat' ? 'block' : 'none';
-  if (t === 'pat') {
-    stopLive();
-    ensurePat();
-    src = patC; offC = null; patStart = null;
-    startLive();
-  }
-}
-
-function loadImg(e) {
-  const f=e.target.files[0]; if(!f) return;
-  stopLive();
-  const url=URL.createObjectURL(f);
-  const img=new Image();
-  img.onload=()=>{ src=img; const t=document.getElementById('ith'); t.src=url; t.style.display='block'; offC=null; render(); };
-  img.src=url;
-}
-
-function loadVid(e) {
-  const f=e.target.files[0]; if(!f) return;
-  stopLive();
-  const url=URL.createObjectURL(f);
-  const v=document.getElementById('vp');
-  v.src=url; v.style.display='block';
-  v.addEventListener('loadeddata',()=>{ src=v; offC=null; render(); if(document.getElementById('live').checked) startLive(); },{once:true});
-  v.addEventListener('seeked',()=>{ render(); }); // re-render on manual scrub
-}
-
-function processFrame() { if(src?.tagName==='VIDEO') render(); }
-
-function loadExampleImg(stateOverride) {
-  const img = new Image();
-  img.onload = () => {
-    stopLive(); src = img; offC = null;
-    const t = document.getElementById('ith'); t.src = img.src; t.style.display = 'block';
-    applyState(stateOverride || DEFAULT_PRESET); render();
-  };
-  img.onerror = () => {}; // media folder not present — silent
-  img.src = './media/flower.jpg';
-  switchInput('img');
-}
-
-async function loadExampleVid() {
-  try {
-    stopLive();
-    switchInput('vid');
-    const v = document.getElementById('vp');
-    v.src = './media/loop.mp4';
-    v.style.display = 'block';
-    v.addEventListener('loadeddata', () => { src = v; offC = null; applyState(DEFAULT_PRESET); render(); if(document.getElementById('live').checked) startLive(); }, {once:true});
-  } catch(e) { /* example media not available on this host — silent */ }
-}
-
-function onLiveToggle() { document.getElementById('live').checked ? startLive() : stopLive(); }
-
-function startLive() {
-  if (liveRAF) return;
-  const loop = (ts) => {
-    if (inType === 'pat') {
-      // Pattern: always redraw, then render
-      drawPattern(ts);
-      render();
-    } else if (src?.tagName === 'VIDEO' && !src.paused && !src.ended) {
-      // Video: only render when playing — scatter stays cached, only pixel colours update
-      render();
-    }
-    liveRAF = requestAnimationFrame(loop);
-  };
-  liveRAF = requestAnimationFrame(loop);
-}
-
-function stopLive() {
-  if (liveRAF) { cancelAnimationFrame(liveRAF); liveRAF = null; }
-  if (inType !== 'pat') document.getElementById('live').checked = false;
-}
-
-// Drop onto canvas
-document.getElementById('canvas-area').addEventListener('dragover',e=>e.preventDefault());
-document.getElementById('canvas-area').addEventListener('drop',e=>{
-  e.preventDefault();
-  const f=e.dataTransfer.files[0]; if(!f) return;
-  if (f.type.startsWith('image/')) { switchInput('img'); loadImg({target:{files:[f]}}); }
-  else if (f.type.startsWith('video/')) { switchInput('vid'); loadVid({target:{files:[f]}}); }
 });
 
-// ══ Canvas sizing ══════════════════════════════════════════════════════════════
-function resize(w,h) {
-  canvas.width=w; canvas.height=h; offC=null; iscAll(); fitCanvas(); render();
-}
-function fitCanvas() {
-  const area=document.getElementById('canvas-area');
-  const mw=area.clientWidth-24, mh=area.clientHeight-56;
-  cvScale=Math.min(1,mw/canvas.width,mh/canvas.height);
-  canvas.style.width=(canvas.width*cvScale)+'px';
-  canvas.style.height=(canvas.height*cvScale)+'px';
-  renderText();
-}
-window.addEventListener('resize',fitCanvas);
-document.getElementById('cw').addEventListener('change',()=>resize(+gv('cw'),+gv('ch')));
-document.getElementById('ch').addEventListener('change',()=>resize(+gv('cw'),+gv('ch')));
-document.getElementById('preset-size').addEventListener('change',e=>{
-  const [w,h]=(e.target.value||'').split('x').map(Number);
-  if(w&&h){document.getElementById('cw').value=w;document.getElementById('ch').value=h;resize(w,h);}
+/* — video upload — */
+panelBody.addEventListener('change', e => {
+  const up = e.target.dataset.vidup;
+  if (up === undefined) return;
+  const f = e.target.files[0];
+  if (!f) return;
+  const i = +up;
+  vids[i].src = URL.createObjectURL(f);
+  vids[i].play().catch(()=>{});
+  const st = document.getElementById('vid-status');
+  if (st) st.textContent = 'Loading…';
+  vids[i].addEventListener('loadeddata', () => {
+    const s = document.getElementById('vid-status');
+    if (s && curTab === i) s.textContent = 'Video ready';
+  }, { once:true });
 });
 
-// ══ Presets ════════════════════════════════════════════════════════════════════
-const PKEY='ngp-presets-v1';
-
-function getPresets() { try{return JSON.parse(localStorage.getItem(PKEY))||[];}catch{return [];} }
-function savePresets(p) { localStorage.setItem(PKEY,JSON.stringify(p)); }
-
-function getState() {
-  return {
-    td:gv('td'),ts:gv('ts'),tm:gv('tm'),th:gv('th'),ref:gv('ref'),bgc:gv('bgc'),
-    layers: LAYERS.map(l=>({
-      id:l.id, theme:gv(l.id+'th'), c1:gv(l.id+'c1'), c2:gv(l.id+'c2'),
-      mode:getMode(l.id),
-      ps:gv(l.id+'ps'), dn:gv(l.id+'dn'), jt:gv(l.id+'jt'),
-      sw:gv(l.id+'sw'), sc:gv(l.id+'sc'),
-      sg:!!document.getElementById(l.id+'sg')?.checked,
-      en:!!document.getElementById(l.id+'en')?.checked,
-    }))
-  };
-}
-
-function applyState(st) {
-  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
-  set('td',st.td); set('ntd',st.td);
-  set('ts',st.ts); set('nts',st.ts); set('tm',st.tm); set('ntm',st.tm);
-  set('th',st.th); set('nth',st.th); set('ref',st.ref); set('nref',st.ref);
-  set('bgc',st.bgc);
-  (st.layers||[]).forEach(ls=>{
-    const id=ls.id;
-    set(id+'th',ls.theme); onTheme(id);
-    if(ls.theme==='custom'){set(id+'c1',ls.c1);set(id+'c2',ls.c2);updSwatch(id);}
-    setMode(id,ls.mode);
-    set(id+'ps',ls.ps);set(id+'nps',ls.ps);
-    set(id+'dn',ls.dn);set(id+'ndn',ls.dn);
-    set(id+'jt',ls.jt);set(id+'njt',ls.jt);
-    set(id+'sw',ls.sw);set(id+'nsw',ls.sw);
-    set(id+'sc',ls.sc);
-    const sg=document.getElementById(id+'sg');if(sg)sg.checked=!!ls.sg;
-    const en=document.getElementById(id+'en');
-    if(en){en.checked=ls.en!==false;en.closest('.sh')?.classList.toggle('off',!en.checked);}
-  });
-  iscAll(); render();
-}
-
-function showSaveForm() {
-  const frm=document.getElementById('save-form');
-  frm.style.display='block';
-  const nm=document.getElementById('preset-name');
-  nm.value='Preset '+(getPresets().length+1);
-  nm.focus(); nm.select();
-}
-function hideSaveForm() { document.getElementById('save-form').style.display='none'; }
-function confirmSave() {
-  const name=document.getElementById('preset-name').value.trim();
-  if(!name) return;
-  const p=getPresets();
-  p.push({name,state:getState(),saved:new Date().toLocaleDateString()});
-  savePresets(p); refreshPresetList(); hideSaveForm();
-  const info=document.getElementById('preset-info');
-  info.textContent='✓ Saved "'+name+'"';
-  setTimeout(()=>info.textContent='',2500);
-}
-// Allow Enter key in name input
-document.addEventListener('DOMContentLoaded',()=>{
-  document.getElementById('preset-name').addEventListener('keydown',e=>{ if(e.key==='Enter') confirmSave(); if(e.key==='Escape') hideSaveForm(); });
-});
-
-function loadPreset() {
-  const sel=document.getElementById('preset-sel');
-  const val=sel.value; if(!val) return;
-  if (val.startsWith('b:')) {
-    const idx=+val.slice(2);
-    const preset=BUILT_IN_PRESETS[idx]; if(!preset) return;
-    if (!src && preset.exampleImg) {
-      loadExampleImg(preset.state);
-    } else {
-      applyState(preset.state);
-    }
-    showPresetInfo('✓ Loaded "'+preset.name+'"');
-  } else {
-    const idx=+val.slice(2);
-    const p=getPresets();
-    if(!p[idx]) return;
-    applyState(p[idx].state);
-    showPresetInfo('✓ Loaded "'+p[idx].name+'"');
-  }
-}
-function showPresetInfo(msg) {
-  const info=document.getElementById('preset-info');
-  info.textContent=msg; setTimeout(()=>info.textContent='',2500);
-}
-
-function deletePreset() {
-  const sel=document.getElementById('preset-sel');
-  const val=sel.value; if(!val||val.startsWith('b:')) return; // can't delete built-ins
-  const idx=+val.slice(2);
-  const p=getPresets(); if(!p[idx]) return;
-  const info=document.getElementById('preset-info');
-  info.innerHTML=`Delete "<b>${p[idx].name}</b>"? <button class="btn sm del" onclick="confirmDelete(${idx})" style="margin-left:4px">Yes, delete</button>`;
-}
-function confirmDelete(idx) {
-  const p=getPresets(); p.splice(idx,1); savePresets(p); refreshPresetList();
-  document.getElementById('preset-info').textContent='';
-}
-
-function refreshPresetList() {
-  const userPresets=getPresets();
-  const sel=document.getElementById('preset-sel');
-  const cur=sel.value;
-  const builtInOpts=BUILT_IN_PRESETS.map((x,i)=>`<option value="b:${i}">${x.name}</option>`).join('');
-  const userOpts=userPresets.map((x,i)=>`<option value="u:${i}">${x.name}  ${x.saved||''}</option>`).join('');
-  sel.innerHTML=
-    '<option value="">— select preset —</option>'+
-    `<optgroup label="Built-in">${builtInOpts}</optgroup>`+
-    (userPresets.length ? `<optgroup label="Saved">${userOpts}</optgroup>` : '');
-  // Restore selection if still valid
-  if([...sel.options].some(o=>o.value===cur)) sel.value=cur;
-}
-
-// ══ Text overlay ══════════════════════════════════════════════════════════════
-function addTxt() {
-  txtLayers.push({text:'Text',x:10,y:20,size:80,weight:'700',style:'normal',color:'#ffffff',bgColor:'#000',bgOp:0,font:null});
-  selTxt=txtLayers.length-1; renderText(); updTxtCtrl();
-}
-function delTxt() {
-  if(selTxt<0) return; txtLayers.splice(selTxt,1);
-  selTxt=Math.min(selTxt,txtLayers.length-1); if(!txtLayers.length)selTxt=-1;
-  renderText(); updTxtCtrl();
-}
-function renderText() {
-  document.querySelectorAll('.text-ov').forEach(e=>e.remove());
-  const show=document.getElementById('sht').checked;
-  const list=document.getElementById('txtlist');
-  list.innerHTML=txtLayers.map((l,i)=>`<div class="ti${i===selTxt?' on':''}" onclick="selT(${i})">${l.text||'(empty)'}</div>`).join('');
-  if(!show) return;
-  txtLayers.forEach((l,i)=>{
-    const el=document.createElement('div');
-    el.className='text-ov'+(i===selTxt?' sel':'');
-    el.style.left=(l.x/100*canvas.width*cvScale)+'px';
-    el.style.top=(l.y/100*canvas.height*cvScale)+'px';
-    el.style.fontSize=(l.size*cvScale)+'px';
-    el.style.fontWeight=l.weight; el.style.fontStyle=l.style; el.style.color=l.color;
-    el.style.fontFamily=l.font||'inherit';
-    if(l.bgOp>0){el.style.background=hexA(l.bgColor,l.bgOp);el.style.padding='2px 6px';}
-    el.textContent=l.text;
-    el.addEventListener('click',e=>{e.stopPropagation();selT(i);});
-    el.addEventListener('mousedown',e=>dragTxt(e,i));
-    document.getElementById('canvas-wrapper').appendChild(el);
-  });
-}
-function selT(i){selTxt=i;renderText();updTxtCtrl();}
-function updTxtCtrl() {
-  const c=document.getElementById('txtctrl');
-  if(selTxt<0||selTxt>=txtLayers.length){c.style.display='none';return;}
-  c.style.display='block';
-  const l=txtLayers[selTxt];
-  document.getElementById('tc').value=l.text;
-  document.getElementById('tfs').value=l.size; document.getElementById('ntfs').value=l.size;
-  document.getElementById('tw').value=l.weight; document.getElementById('tst').value=l.style;
-  document.getElementById('tco').value=l.color; document.getElementById('tbg').value=l.bgColor;
-  document.getElementById('tbgo').value=l.bgOp;
-}
-function updTxt() {
-  if(selTxt<0) return; const l=txtLayers[selTxt];
-  l.text=gv('tc'); l.size=+gv('tfs'); l.weight=gv('tw'); l.style=gv('tst');
-  l.color=gv('tco'); l.bgColor=gv('tbg'); l.bgOp=+gv('tbgo');
-  renderText();
-  const items=document.querySelectorAll('#txtlist .ti');
-  if(items[selTxt]) items[selTxt].textContent=l.text||'(empty)';
-}
-function dragTxt(e,i) {
-  e.preventDefault(); selT(i);
-  const sx=e.clientX,sy=e.clientY,ox=txtLayers[i].x,oy=txtLayers[i].y;
-  const mv=e=>{
-    txtLayers[i].x=ox+(e.clientX-sx)/(canvas.width*cvScale)*100;
-    txtLayers[i].y=oy+(e.clientY-sy)/(canvas.height*cvScale)*100;
-    renderText();
-  };
-  const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);};
-  document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
-}
-function loadFont(e) {
-  const f=e.target.files[0]; if(!f) return;
-  const url=URL.createObjectURL(f), name='cf'+Date.now();
-  new FontFace(name,`url(${url})`).load().then(ff=>{
-    document.fonts.add(ff); customFont=name;
-    if(selTxt>=0){txtLayers[selTxt].font=name;updTxt();}
-  });
-}
-
-// ══ Export ════════════════════════════════════════════════════════════════════
-function exportPNG() {
-  const ec=document.createElement('canvas'); ec.width=canvas.width; ec.height=canvas.height;
-  const ex=ec.getContext('2d'); ex.drawImage(canvas,0,0);
-  if(document.getElementById('sht').checked) {
-    txtLayers.forEach(l=>{
-      ex.font=`${l.style} ${l.weight} ${l.size}px ${l.font||'sans-serif'}`;
-      const px=l.x/100*canvas.width, py=l.y/100*canvas.height;
-      if(l.bgOp>0){const m=ex.measureText(l.text);ex.fillStyle=hexA(l.bgColor,l.bgOp);ex.fillRect(px-6,py-l.size,m.width+12,l.size+8);}
-      ex.fillStyle=l.color; ex.fillText(l.text,px,py);
-    });
-  }
-  const a=document.createElement('a'); a.download='pixelation.png'; a.href=ec.toDataURL('image/png'); a.click();
-}
-
-// ══ Reset ═════════════════════════════════════════════════════════════════════
-function resetAll() {
-  [['td','ntd',25],['ts','nts',50],['tm','ntm',130],['th','nth',200],['ref','nref',0]].forEach(([r,n,v])=>{
-    document.getElementById(r).value=v; document.getElementById(n).value=v;
-  });
-  iscAll(); render();
-}
-
-// ══ Utils ══════════════════════════════════════════════════════════════════════
-function gv(id){const e=document.getElementById(id);return e?e.value:null;}
-function sn(r,nId){document.getElementById(nId).value=r.value;}
-function sr(n,rId){document.getElementById(rId).value=n.value;}
-function tog(h){
-  h.classList.toggle('op');
-  h.nextElementSibling.classList.toggle('op');
-  h.querySelector('.ar').textContent=h.classList.contains('op')?'▲':'▼';
-}
-
-// ══ Init ══════════════════════════════════════════════════════════════════════
-LAYERS.forEach(l=>buildLayerUI(l));
-refreshPresetList();
-resize(800,1100);
-loadExampleImg();
+/* init */
+buildPanel();
+updateLiveTabUI();
 </script>
 </body>
 </html>
