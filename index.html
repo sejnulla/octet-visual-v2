@@ -330,7 +330,7 @@ footer {
 #panel-toggle {
   position: fixed;
   top: 12px;
-  right: 14px;
+  left: 14px;
   z-index: 400;
   width: 34px;
   height: 34px;
@@ -350,13 +350,13 @@ footer {
 #panel {
   position: fixed;
   top: 0;
-  right: 0;
+  left: 0;
   z-index: 390;
   width: 296px;
   height: 100vh;
   background: #f7f5f1;
-  border-left: 1px solid var(--brd);
-  box-shadow: -6px 0 28px rgba(0,0,0,.12);
+  border-right: 1px solid var(--brd);
+  box-shadow: 6px 0 28px rgba(0,0,0,.12);
   overflow-y: auto;
   font-family: var(--sans);
   font-size: 12px;
@@ -364,7 +364,7 @@ footer {
   transition: transform .22s ease;
   padding-bottom: 60px;
 }
-#panel.hidden { transform: translateX(100%); }
+#panel.hidden { transform: translateX(-100%); }
 
 #panel-head {
   position: sticky; top: 0; z-index: 5;
@@ -448,6 +448,17 @@ select { width: 100%; border: 1px solid var(--brd); border-radius: 4px; padding:
 
 .file-in { font-size: 10px; width: 100%; }
 .vid-status { font-size: 9.5px; color: var(--dim); margin-top: 5px; font-family: var(--mono); }
+
+.mini-btn {
+  font-size: 10px; padding: 4px 9px; border: 1px solid var(--brd); border-radius: 5px;
+  background: #fff; cursor: pointer; color: var(--ink); white-space: nowrap; flex-shrink: 0;
+}
+.mini-btn:hover { background: #efece6; }
+#panel input[type=text] {
+  border: 1px solid var(--brd); border-radius: 4px; padding: 4px 7px; font-size: 11px;
+  flex: 1; min-width: 0; font-family: var(--sans);
+}
+#preset-msg { font-size: 9.5px; color: var(--dim); margin-top: 6px; min-height: 11px; font-family: var(--mono); }
 
 /* ── Mobile ──────────────────────────────────────────────────── */
 @media (max-width: 860px) {
@@ -714,37 +725,46 @@ function L(id,theme,mode,ps,dn,jt,extra){
     ps:String(ps), dn:String(dn), jt:String(jt), sw:'0', sc:'#000000', sg:false, en:true }, extra||{});
 }
 const STATES = [
-  { // ── First · noise ──
-    source:'noise',
+  { // ── First · game of life ──
+    source:'life',
     noise:{ speed:0.6, scale:7, detail:3, contrast:42 },
-    preset:{ bgc:'#ededed', td:'0', ts:'40', tm:'72', th:'230', layers:[
-      L('d','bloom','solid-brightness',16,80,18),
-      L('s','surface','random-gradient',89,100,0),
-      L('m','forest','solid-brightness',12,88,0,{sg:true}),
-      L('h','sunset','solid-brightness',10,90,22),
-      L('b','sunset','solid-brightness',12,95,14),
+    life:{ speed:9, scale:90, decay:55, density:32 },
+    pointer:{ on:true, size:26, fade:6 },
+    trail:{ on:true, amount:100 },
+    preset:{ bgc:'#f6f1ea', td:'15', ts:'174', tm:'221', th:'250', layers:[
+      L('d','surface','random-gradient',15,13,0),
+      L('s','sunset','random-gradient',15,72,0),
+      L('m','bloom','random-gradient',15,68,0),
+      L('h','bloom','random-gradient',15,78,0),
+      L('b','forest','random-gradient',15,72,0),
     ]}
   },
   { // ── Second · video ──
     source:'video',
     noise:{ speed:0.5, scale:6, detail:3, contrast:40 },
-    preset:{ bgc:'#ededed', td:'19', ts:'55', tm:'180', th:'230', layers:[
-      L('d','custom','solid',40,100,0,{c1:'#f2f2f2',sw:'1',sc:'#d4d4d4'}),
-      L('s','surface','gradient-cell',40,87,0),
-      L('m','forest','solid',40,88,0,{sg:true}),
-      L('h','sunset','solid-brightness',40,90,0),
-      L('b','sunset','solid-brightness',40,95,0),
+    life:{ speed:9, scale:90, decay:55, density:32 },
+    pointer:{ on:true, size:26, fade:6 },
+    trail:{ on:true, amount:100 },
+    preset:{ bgc:'#ededed', td:'0', ts:'57', tm:'118', th:'255', layers:[
+      L('d','custom','solid',40,100,0,{c1:'#f2f2f2',sw:'1',sc:'#d4d4d4',en:false}),
+      L('s','sunset','random-gradient',25,87,0,{sg:true,en:false}),
+      L('m','surface','random-gradient',25,88,0,{sg:true}),
+      L('h','bloom','random-gradient',4,90,0,{sg:true}),
+      L('b','forest','solid-brightness',40,95,0,{en:false}),
     ]}
   },
   { // ── Third · video ──
     source:'video',
     noise:{ speed:0.4, scale:5, detail:2, contrast:55 },
-    preset:{ bgc:'#ededed', td:'0', ts:'57', tm:'118', th:'255', layers:[
-      L('d','custom','solid',40,100,0,{c1:'#f2f2f2',sw:'1',sc:'#d4d4d4',en:false}),
-      L('s','sunset','random-gradient',25,87,0,{sg:true}),
-      L('m','surface','random-gradient',25,88,0,{sg:true}),
-      L('h','bloom','random-gradient',25,90,0,{sg:true}),
-      L('b','forest','solid-brightness',40,95,0),
+    life:{ speed:9, scale:90, decay:55, density:32 },
+    pointer:{ on:false, size:26, fade:6 },
+    trail:{ on:true, amount:100 },
+    preset:{ bgc:'#f6f1ea', td:'20', ts:'51', tm:'106', th:'13', layers:[
+      L('d','surface','gradient-cell',73,89,0,{sg:true}),
+      L('s','sunset','solid',53,92,0,{sw:'2',sg:true,en:false}),
+      L('m','forest','gradient-cell',34,72,0),
+      L('h','bloom','solid',59,89,0,{sw:'2',sg:true}),
+      L('b','surface','solid-brightness',12,100,0,{sw:'11',sc:'#8a1919',sg:true}),
     ]}
   },
 ];
@@ -756,6 +776,50 @@ const SECTION_MAP = {
   'section-wl02':    1,
   'section-closing': 2,
 };
+const TAB_NAMES = ['First', 'Second', 'Third'];
+
+/* ══ Preset library ═══════════════════════════════════════════════
+   Built-in visual presets the user can apply to any section, plus
+   user-saved presets in localStorage. A preset = the visual look
+   (bgc, thresholds, trail, layers) — not the section's source.     */
+const PRESETS = [
+  { name:'Botanical', state:{td:'18',ts:'55',tm:'130',th:'210',bgc:'#000000',layers:[
+    {id:'d',theme:'bloom',c1:'#e18ea3',c2:'#cf2f1e',mode:'solid-brightness',ps:'16',dn:'80',jt:'18',sw:'0',sc:'#000000',sg:false,en:false},
+    {id:'s',theme:'forest',c1:'#a0b80a',c2:'#4e5d02',mode:'solid-brightness',ps:'16',dn:'80',jt:'18',sw:'0',sc:'#000000',sg:false,en:true},
+    {id:'m',theme:'surface',c1:'#645139',c2:'#5ca6cd',mode:'gradient-cell',ps:'24',dn:'88',jt:'20',sw:'0',sc:'#000000',sg:false,en:true},
+    {id:'h',theme:'bloom',c1:'#e18ea3',c2:'#cf2f1e',mode:'random-gradient',ps:'36',dn:'90',jt:'22',sw:'0',sc:'#000000',sg:false,en:true},
+    {id:'b',theme:'sunset',c1:'#e44d43',c2:'#f9cf80',mode:'gradient-cell',ps:'28',dn:'95',jt:'14',sw:'0',sc:'#000000',sg:false,en:true},
+  ]}},
+  { name:'Preset 1', state:{"bgc":"#ededed","td":"0","ts":"40","tm":"72","th":"230","layers":[{"id":"d","theme":"bloom","c1":"#02e6ff","c2":"#0044cc","mode":"solid-brightness","ps":"16","dn":"80","jt":"18","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"s","theme":"surface","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"89","dn":"100","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"m","theme":"forest","c1":"#02e6ff","c2":"#0044cc","mode":"solid-brightness","ps":"12","dn":"88","jt":"0","sw":"0","sc":"#000000","sg":true,"en":true},{"id":"h","theme":"sunset","c1":"#02e6ff","c2":"#0044cc","mode":"solid-brightness","ps":"10","dn":"90","jt":"22","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"b","theme":"sunset","c1":"#02e6ff","c2":"#0044cc","mode":"solid-brightness","ps":"12","dn":"95","jt":"14","sw":"0","sc":"#000000","sg":false,"en":true}]}},
+  { name:'Preset 2', state:{"bgc":"#ededed","td":"19","ts":"55","tm":"180","th":"230","layers":[{"id":"d","theme":"custom","c1":"#f2f2f2","c2":"#0044cc","mode":"solid","ps":"40","dn":"100","jt":"0","sw":"1","sc":"#d4d4d4","sg":false,"en":true},{"id":"s","theme":"surface","c1":"#02e6ff","c2":"#0044cc","mode":"gradient-cell","ps":"40","dn":"87","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"m","theme":"forest","c1":"#02e6ff","c2":"#0044cc","mode":"solid","ps":"40","dn":"88","jt":"0","sw":"0","sc":"#000000","sg":true,"en":true},{"id":"h","theme":"sunset","c1":"#02e6ff","c2":"#0044cc","mode":"solid-brightness","ps":"40","dn":"90","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"b","theme":"sunset","c1":"#02e6ff","c2":"#0044cc","mode":"solid-brightness","ps":"40","dn":"95","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true}]}},
+  { name:'Preset 3', state:{"bgc":"#ededed","td":"0","ts":"57","tm":"118","th":"255","layers":[{"id":"d","theme":"custom","c1":"#f2f2f2","c2":"#0044cc","mode":"solid","ps":"40","dn":"100","jt":"0","sw":"1","sc":"#d4d4d4","sg":false,"en":false},{"id":"s","theme":"sunset","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"25","dn":"87","jt":"0","sw":"0","sc":"#000000","sg":true,"en":true},{"id":"m","theme":"surface","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"25","dn":"88","jt":"0","sw":"0","sc":"#000000","sg":true,"en":true},{"id":"h","theme":"bloom","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"25","dn":"90","jt":"0","sw":"0","sc":"#000000","sg":true,"en":true},{"id":"b","theme":"forest","c1":"#02e6ff","c2":"#0044cc","mode":"solid-brightness","ps":"40","dn":"95","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true}]}},
+  { name:'Preset 4', state:{"td":"0","ts":"108","tm":"139","th":"250","bgc":"#c7c7c7","layers":[{"id":"d","theme":"forest","c1":"#cdb18a","c2":"#7a4a7b","mode":"solid-brightness","ps":"18","dn":"70","jt":"18","sw":"0","sc":"#000000","sg":false,"en":false},{"id":"s","theme":"bloom","c1":"#8a153f","c2":"#cb03db","mode":"solid-brightness","ps":"47","dn":"72","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"m","theme":"bloom","c1":"#48924b","c2":"#2d57a9","mode":"gradient-cell","ps":"76","dn":"68","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"h","theme":"bloom","c1":"#fbb63f","c2":"#b8bdc5","mode":"random-gradient","ps":"67","dn":"78","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"b","theme":"forest","c1":"#909e34","c2":"#ccb7c2","mode":"gradient-cell","ps":"36","dn":"72","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true}]}},
+  { name:'Preset 5', state:{"td":"26","ts":"174","tm":"221","th":"250","bgc":"#c7c7c7","layers":[{"id":"d","theme":"surface","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"47","dn":"62","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"s","theme":"sunset","c1":"#02e6ff","c2":"#0044cc","mode":"gradient-cell","ps":"47","dn":"72","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"m","theme":"bloom","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"47","dn":"68","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"h","theme":"bloom","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"47","dn":"78","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"b","theme":"forest","c1":"#02e6ff","c2":"#0044cc","mode":"random-gradient","ps":"47","dn":"72","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true}]}},
+  { name:'Preset 7', state:{"td":"29","ts":"31","tm":"103","th":"225","bgc":"#c7c7c7","layers":[{"id":"d","theme":"forest","c1":"#61f836","c2":"#213979","mode":"gradient-cell","ps":"71","dn":"50","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"s","theme":"sunset","c1":"#bc018b","c2":"#8f1ac3","mode":"random-gradient","ps":"21","dn":"92","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"m","theme":"sunset","c1":"#00277a","c2":"#0d4f01","mode":"solid","ps":"61","dn":"95","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"h","theme":"bloom","c1":"#fe8a88","c2":"#aa519a","mode":"solid","ps":"59","dn":"89","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true},{"id":"b","theme":"sunset","c1":"#178d2b","c2":"#f32461","mode":"gradient-cell","ps":"40","dn":"50","jt":"0","sw":"0","sc":"#000000","sg":false,"en":true}]}},
+  { name:'Preset 7b', state:{"td":"29","ts":"31","tm":"103","th":"225","bgc":"#c7c7c7","layers":[{"id":"d","theme":"forest","c1":"#61f836","c2":"#213979","mode":"solid-brightness","ps":"71","dn":"50","jt":"0","sw":"1","sc":"#000000","sg":true,"en":true},{"id":"s","theme":"sunset","c1":"#bc018b","c2":"#8f1ac3","mode":"solid","ps":"21","dn":"92","jt":"0","sw":"2","sc":"#000000","sg":true,"en":true},{"id":"m","theme":"sunset","c1":"#00277a","c2":"#0d4f01","mode":"solid","ps":"61","dn":"95","jt":"0","sw":"1","sc":"#000000","sg":false,"en":true},{"id":"h","theme":"bloom","c1":"#fe8a88","c2":"#aa519a","mode":"solid","ps":"59","dn":"89","jt":"0","sw":"2","sc":"#000000","sg":true,"en":true},{"id":"b","theme":"sunset","c1":"#178d2b","c2":"#f32461","mode":"solid","ps":"40","dn":"50","jt":"0","sw":"2","sc":"#000000","sg":true,"en":true}]}},
+];
+
+const PKEY = 'octet-v2-presets';
+function getUserPresets(){ try { return JSON.parse(localStorage.getItem(PKEY)) || []; } catch { return []; } }
+function saveUserPresets(p){ try { localStorage.setItem(PKEY, JSON.stringify(p)); } catch {} }
+
+function applyPresetToSection(idx, s){
+  const p = STATES[idx].preset;
+  p.bgc = s.bgc; p.td = String(s.td); p.ts = String(s.ts); p.tm = String(s.tm); p.th = String(s.th);
+  p.layers = s.layers.map(l => ({
+    id:l.id, theme:l.theme, c1:l.c1||'#02e6ff', c2:l.c2||'#0044cc', mode:l.mode,
+    ps:String(l.ps), dn:String(l.dn), jt:String(l.jt), sw:String(l.sw||0), sc:l.sc||'#000000',
+    sg:!!l.sg, en:l.en !== false
+  }));
+  if (s.trail) STATES[idx].trail = { on:!!s.trail.on, amount:+s.trail.amount || 70 };
+  ensureScatter(idx);
+}
+function saveCurrentSectionAsPreset(name){
+  const st = STATES[curTab], p = st.preset;
+  const s = { bgc:p.bgc, td:p.td, ts:p.ts, tm:p.tm, th:p.th, trail:{ ...st.trail },
+    layers: p.layers.map(l => ({ ...l })) };
+  const u = getUserPresets(); u.push({ name, state:s }); saveUserPresets(u);
+}
 
 /* ══ Canvas setup ═════════════════════════════════════════════════ */
 const CW = 440, CH = 550;
@@ -812,6 +876,122 @@ function drawNoise(np, t) {
   noiseLowCtx.putImageData(noiseImg, 0, 0);
 }
 
+/* ══ Conway's Game of Life source ═════════════════════════════════
+   A toroidal GoL grid whose "heat" buffer (alive = 1, dead decays)
+   becomes the brightness field the pixelation samples. Re-seeds when
+   it nears extinction so it never goes fully static.                */
+const lifeCanvas = document.createElement('canvas');
+const lifeCtx = lifeCanvas.getContext('2d');
+let lifeW = 0, lifeH = 0;
+let lifeCur = null, lifeNext = null, lifeHeat = null, lifeImg = null;
+let lifeAcc = 0, lifeReseed = false;
+
+function lifeInit(cols){
+  lifeW = clamp(cols|0, 16, 220);
+  lifeH = Math.round(lifeW * CH / CW);
+  lifeCanvas.width = lifeW; lifeCanvas.height = lifeH;
+  lifeImg = lifeCtx.createImageData(lifeW, lifeH);
+  lifeCur = new Uint8Array(lifeW * lifeH);
+  lifeNext = new Uint8Array(lifeW * lifeH);
+  lifeHeat = new Float32Array(lifeW * lifeH);
+}
+function lifeSeed(density){
+  const p = (density || 32) / 100;
+  for (let i = 0; i < lifeCur.length; i++) { lifeCur[i] = Math.random() < p ? 1 : 0; lifeHeat[i] = lifeCur[i]; }
+}
+function lifeStep(decay){
+  const W = lifeW, H = lifeH, cur = lifeCur, nxt = lifeNext;
+  let pop = 0;
+  for (let y = 0; y < H; y++) {
+    const ym = ((y-1+H)%H)*W, y0 = y*W, yp = ((y+1)%H)*W;
+    for (let x = 0; x < W; x++) {
+      const xm = (x-1+W)%W, xp = (x+1)%W;
+      const n = cur[ym+xm]+cur[ym+x]+cur[ym+xp]+cur[y0+xm]+cur[y0+xp]+cur[yp+xm]+cur[yp+x]+cur[yp+xp];
+      const next = (cur[y0+x] ? (n===2||n===3) : (n===3)) ? 1 : 0;
+      nxt[y0+x] = next; pop += next;
+    }
+  }
+  lifeCur = nxt; lifeNext = cur;
+  const d = clamp(decay, 0, 0.96);
+  for (let i = 0; i < lifeHeat.length; i++) { if (lifeCur[i]) lifeHeat[i] = 1; else lifeHeat[i] *= d; }
+  if (pop < lifeCur.length * 0.02) {            // near extinction → sprinkle new soup
+    const add = lifeCur.length * 0.05 | 0;
+    for (let k = 0; k < add; k++) { const i = (Math.random()*lifeCur.length)|0; lifeCur[i] = 1; lifeHeat[i] = 1; }
+  }
+}
+function lifeDrawHeat(){
+  const d = lifeImg.data;
+  for (let i = 0, j = 0; i < lifeHeat.length; i++, j += 4) {
+    const v = (lifeHeat[i]*255)|0; d[j] = d[j+1] = d[j+2] = v; d[j+3] = 255;
+  }
+  lifeCtx.putImageData(lifeImg, 0, 0);
+}
+function drawLife(lp, dt){
+  const cols = clamp((+lp.scale||90)|0, 16, 220);
+  if (lifeW !== cols) { lifeInit(cols); lifeSeed(lp.density); }
+  if (lifeReseed) { lifeSeed(lp.density); lifeReseed = false; }
+  const interval = 1 / clamp(+lp.speed||9, 0.5, 60);
+  lifeAcc += dt; if (lifeAcc > 1) lifeAcc = interval;     // clamp after tab-out
+  let steps = 0;
+  const decay = clamp((+lp.decay||0)/100, 0, 0.96);
+  while (lifeAcc >= interval && steps < 4) { lifeStep(decay); lifeAcc -= interval; steps++; }
+  lifeDrawHeat();
+}
+/* Seed a cluster of live cells at a grid position (pointer interaction) */
+function lifeSeedAt(nx, ny){
+  if (!lifeCur) return;
+  const gx = (nx/CW*lifeW)|0, gy = (ny/CH*lifeH)|0, r = 2;
+  for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    if (Math.random() > 0.55) continue;
+    const x = (gx+dx+lifeW)%lifeW, y = (gy+dy+lifeH)%lifeH, i = y*lifeW+x;
+    lifeCur[i] = 1; lifeHeat[i] = 1;
+  }
+}
+
+/* ══ Pointer trail (all sections) ═════════════════════════════════
+   Soft white blobs stamped at the cursor onto an additive buffer that
+   fades over time; composited into the brightness field so cells spawn
+   in each section's own style and dissolve as the trail fades.       */
+const DEFAULT_POINTER = { on:true, size:26, fade:6 };
+function curPointer(){ return STATES[liveIdx].pointer || DEFAULT_POINTER; }
+const ptrC = document.createElement('canvas'); ptrC.width = CW; ptrC.height = CH;
+const ptrX = ptrC.getContext('2d');
+let ptrActive = false, ptrLX = 0, ptrLY = 0;
+
+function stampPointer(x, y){
+  const rad = curPointer().size;
+  ptrX.globalCompositeOperation = 'lighter';
+  const dist = ptrActive ? Math.hypot(x-ptrLX, y-ptrLY) : 0;
+  const steps = Math.max(1, Math.round(dist / (rad*0.5)));   // interpolate fast moves
+  for (let s = 0; s < steps; s++) {
+    const t = steps > 1 ? s/(steps-1) : 0;
+    const px = ptrActive ? ptrLX + (x-ptrLX)*t : x;
+    const py = ptrActive ? ptrLY + (y-ptrLY)*t : y;
+    const g = ptrX.createRadialGradient(px, py, 0, px, py, rad);
+    g.addColorStop(0, 'rgba(255,255,255,0.85)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ptrX.fillStyle = g;
+    ptrX.beginPath(); ptrX.arc(px, py, rad, 0, 6.2832); ptrX.fill();
+  }
+  ptrX.globalCompositeOperation = 'source-over';
+  ptrActive = true; ptrLX = x; ptrLY = y;
+  if (STATES[liveIdx].source === 'life') lifeSeedAt(x, y);   // also feed the simulation
+}
+function fadePointer(dt){
+  const a = clamp((curPointer().fade/100) * (dt*60), 0, 1);
+  if (a <= 0) return;
+  ptrX.globalCompositeOperation = 'source-over';
+  ptrX.fillStyle = `rgba(0,0,0,${a})`;
+  ptrX.fillRect(0, 0, CW, CH);
+}
+cv.addEventListener('pointermove', e => {
+  if (!curPointer().on) return;
+  const r = cv.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  stampPointer((e.clientX-r.left)*(CW/r.width), (e.clientY-r.top)*(CH/r.height));
+});
+cv.addEventListener('pointerleave', () => { ptrActive = false; });
+
 /* ══ Hidden video elements (one per section) ══════════════════════ */
 const vids = [];
 for (let i = 0; i < 3; i++) {
@@ -823,8 +1003,8 @@ for (let i = 0; i < 3; i++) {
 }
 /* Seed sections 2 & 3 with their videos until the user uploads a replacement */
 function seedVideo(i, src){ vids[i].src = src; vids[i].play().catch(()=>{}); }
-seedVideo(1, './media/weavy2.mp4');
-seedVideo(2, './media/weavy3.mp4');
+seedVideo(1, './media/section2b.mp4');
+seedVideo(2, './media/section3b.mp4');
 
 /* ══ Scatter cache (rebuilt when ps/dn/jt of a layer change) ══════ */
 const SCAT = {};
@@ -874,7 +1054,7 @@ function lerpAes(A, B, t){
    aesthetic params tween from the displayed snapshot to the target. */
 const TWEEN_MS = 900;
 let liveIdx = 0;
-let tweening = false, tweenStart = 0;
+let tweening = false, tweenStart = 0, clearOnce = true;
 let fromAes = aesOf(STATES[0]), toAes = aesOf(STATES[0]), curAes = aesOf(STATES[0]);
 
 function transitionTo(idx){
@@ -885,14 +1065,25 @@ function transitionTo(idx){
   ensureScatter(idx);
   tweenStart = performance.now();
   tweening = true;
+  clearOnce = true;                 // wipe any trail left from the previous section
+  ptrX.clearRect(0, 0, CW, CH); ptrActive = false;   // reset pointer trail per section
   updateLiveTabUI();
 }
 
 /* ══ Renderer ═════════════════════════════════════════════════════ */
 function renderFrame(aes, px){
   const st = STATES[liveIdx];
+
+  // Background fill — trail mode fades the previous frame instead of wiping it,
+  // leaving motion trails behind moving cells.
+  const trail = st.trail;
+  mainCtx.globalAlpha = (trail && trail.on && !clearOnce)
+    ? clamp(1 - (trail.amount / 100) * 0.96, 0.04, 1)
+    : 1;
   mainCtx.fillStyle = rgbStr(aes.bg);
   mainCtx.fillRect(0, 0, CW, CH);
+  mainCtx.globalAlpha = 1;
+  clearOnce = false;
 
   const tDk = aes.td, tSh = aes.ts, tMi = aes.tm, tHi = aes.th;
   const bnd = { d:[0,tDk], s:[tDk,tSh], m:[tSh,tMi], h:[tMi,tHi], b:[tHi,256] };
@@ -938,21 +1129,34 @@ function renderFrame(aes, px){
 }
 
 /* ══ Source sampling ══════════════════════════════════════════════ */
-function samplePixels(tSec){
+function samplePixels(tSec, dt){
   const st = STATES[liveIdx];
   let drew = false;
   if (st.source === 'video') {
     const v = vids[liveIdx];
     if (v && v.readyState >= 2 && !v.ended && v.videoWidth) { pixCtx.drawImage(v, 0, 0, CW, CH); drew = true; }
+  } else if (st.source === 'life') {
+    drawLife(st.life || { speed:9, scale:90, decay:55, density:32 }, dt);
+    pixCtx.drawImage(lifeCanvas, 0, 0, CW, CH); drew = true;
   }
   if (!drew) { drawNoise(st.noise, tSec); pixCtx.drawImage(noiseLow, 0, 0, CW, CH); }
+
+  // Composite the pointer trail additively so cells spawn near the cursor
+  if (curPointer().on) {
+    pixCtx.globalCompositeOperation = 'lighter';
+    pixCtx.drawImage(ptrC, 0, 0);
+    pixCtx.globalCompositeOperation = 'source-over';
+  }
   return pixCtx.getImageData(0, 0, CW, CH).data;
 }
 
 /* ══ Render loop ══════════════════════════════════════════════════ */
+let prevSec = null;
 function frame(ts){
   requestAnimationFrame(frame);
   const tSec = ts / 1000;
+  const dt = prevSec == null ? 0 : Math.min(0.1, tSec - prevSec);
+  prevSec = tSec;
 
   if (tweening) {
     const t = clamp((ts - tweenStart) / TWEEN_MS, 0, 1);
@@ -962,7 +1166,8 @@ function frame(ts){
     curAes = aesOf(STATES[liveIdx]);   // read live so panel edits reflect instantly
   }
 
-  const px = samplePixels(tSec);
+  if (curPointer().on) fadePointer(dt);
+  const px = samplePixels(tSec, dt);
   renderFrame(curAes, px);
 }
 requestAnimationFrame(frame);
@@ -1020,21 +1225,67 @@ function buildPanel(){
   const p = st.preset;
   let html = '';
 
+  /* Preset library */
+  html += `<div class="pblock"><div class="pblock-title">Preset · ${TAB_NAMES[curTab]} section</div>
+    <div class="prow" style="gap:5px">
+      <select id="preset-sel" style="flex:1">${presetOptions()}</select>
+      <button class="mini-btn" id="preset-apply">Apply</button>
+    </div>
+    <div class="prow" style="gap:5px;margin-top:7px">
+      <input type="text" id="preset-name" placeholder="Save current as…">
+      <button class="mini-btn" id="preset-save">Save</button>
+    </div>
+    <div id="preset-msg"></div>
+  </div>`;
+
   /* Source */
+  const lf = st.life || (st.life = { speed:9, scale:90, decay:55, density:32 });
   html += `<div class="pblock"><div class="pblock-title">Source</div>
     <div class="radio-row">
+      <label><input type="radio" name="src" data-k="source" value="life" ${st.source==='life'?'checked':''}><span>Life</span></label>
       <label><input type="radio" name="src" data-k="source" value="noise" ${st.source==='noise'?'checked':''}><span>Noise</span></label>
       <label><input type="radio" name="src" data-k="source" value="video" ${st.source==='video'?'checked':''}><span>Video</span></label>
     </div>
-    <div id="src-noise" style="margin-top:10px;${st.source==='noise'?'':'display:none'}">
+    <div id="src-life" class="src-panel" style="margin-top:10px;${st.source==='life'?'':'display:none'}">
+      ${rangeField('Speed (gen/s)','life.speed',lf.speed,0.5,30,0.5)}
+      ${rangeField('Scale (cells)','life.scale',lf.scale,24,200,1)}
+      ${rangeField('Fade trail','life.decay',lf.decay,0,95,1)}
+      ${rangeField('Seed density','life.density',lf.density,2,90,1)}
+      <button class="mini-btn" id="life-reseed" style="margin-top:4px">Reseed</button>
+    </div>
+    <div id="src-noise" class="src-panel" style="margin-top:10px;${st.source==='noise'?'':'display:none'}">
       ${rangeField('Speed','noise.speed',st.noise.speed,0,3,0.05)}
       ${rangeField('Scale','noise.scale',st.noise.scale,2,24,1)}
       ${rangeField('Detail','noise.detail',st.noise.detail,1,5,1)}
       ${rangeField('Contrast','noise.contrast',st.noise.contrast,0,100,1)}
     </div>
-    <div id="src-video" style="margin-top:10px;${st.source==='video'?'':'display:none'}">
+    <div id="src-video" class="src-panel" style="margin-top:10px;${st.source==='video'?'':'display:none'}">
       <input class="file-in" type="file" accept="video/*" data-vidup="${curTab}">
       <div class="vid-status" id="vid-status">${videoStatus(curTab)}</div>
+    </div>
+  </div>`;
+
+  /* Pointer interaction (per section) */
+  const pt = st.pointer || (st.pointer = { on:true, size:26, fade:6 });
+  html += `<div class="pblock"><div class="pblock-title">Pointer · ${TAB_NAMES[curTab]} section</div>
+    <div class="prow" style="justify-content:space-between">
+      <span style="font-size:11px">Cursor spawns cells</span>
+      <label class="tog"><input type="checkbox" data-k="pointer.on" ${pt.on?'checked':''}><span class="ts"></span></label>
+    </div>
+    <div style="margin-top:8px">
+      ${rangeField('Brush size','pointer.size',pt.size,6,80,1)}
+      ${rangeField('Fade speed','pointer.fade',pt.fade,1,40,1)}
+    </div>
+  </div>`;
+
+  /* Trail */
+  html += `<div class="pblock"><div class="pblock-title">Trail</div>
+    <div class="prow" style="justify-content:space-between">
+      <span style="font-size:11px">Cell trail</span>
+      <label class="tog"><input type="checkbox" data-k="trail.on" ${st.trail.on?'checked':''}><span class="ts"></span></label>
+    </div>
+    <div id="trail-amt-wrap" style="margin-top:8px;${st.trail.on?'':'opacity:.4'}">
+      ${rangeField('Trail length','trail.amount',st.trail.amount,0,100,1)}
     </div>
   </div>`;
 
@@ -1088,7 +1339,38 @@ function buildPanel(){
   });
 
   panelBody.innerHTML = html;
+  wirePresetControls();
   updateLiveTabUI();
+}
+
+function presetOptions(){
+  const u = getUserPresets();
+  const bi = PRESETS.map((p,i) => `<option value="b:${i}">${p.name}</option>`).join('');
+  const us = u.map((p,i) => `<option value="u:${i}">${p.name}</option>`).join('');
+  return `<option value="">— choose preset —</option>`
+    + `<optgroup label="Built-in">${bi}</optgroup>`
+    + (u.length ? `<optgroup label="Saved">${us}</optgroup>` : '');
+}
+function presetMsg(t){ const el = document.getElementById('preset-msg'); if (el) el.textContent = t; }
+function wirePresetControls(){
+  const applyBtn = document.getElementById('preset-apply');
+  const saveBtn  = document.getElementById('preset-save');
+  if (applyBtn) applyBtn.onclick = () => {
+    const v = document.getElementById('preset-sel').value;
+    if (!v) { presetMsg('Pick a preset first'); return; }
+    const s = v.startsWith('b:') ? PRESETS[+v.slice(2)].state : (getUserPresets()[+v.slice(2)] || {}).state;
+    if (!s) return;
+    applyPresetToSection(curTab, s);
+    buildPanel();
+    presetMsg('Applied to ' + TAB_NAMES[curTab] + ' section');
+  };
+  if (saveBtn) saveBtn.onclick = () => {
+    const nm = document.getElementById('preset-name').value.trim();
+    if (!nm) { presetMsg('Enter a name to save'); return; }
+    saveCurrentSectionAsPreset(nm);
+    buildPanel();
+    presetMsg('Saved "' + nm + '"');
+  };
 }
 
 function videoStatus(i){
@@ -1103,6 +1385,9 @@ function setK(k, val){
   const st = STATES[curTab];
   if (k === 'source') { st.source = val; }
   else if (k.startsWith('noise.')) { st.noise[k.slice(6)] = +val; }
+  else if (k.startsWith('life.'))  { st.life[k.slice(5)] = +val; }
+  else if (k.startsWith('pointer.')) { const f = k.slice(8); st.pointer[f] = (f === 'on') ? val : +val; }
+  else if (k.startsWith('trail.')) { const f = k.slice(6); st.trail[f] = (f === 'on') ? val : +val; }
   else if (k.startsWith('L')) {
     const m = k.match(/^L(\d+)\.(.+)$/);
     const l = st.preset.layers[+m[1]];
@@ -1124,6 +1409,7 @@ panelBody.addEventListener('input', e => {
   else if (el.type === 'radio') {
     if (!el.checked) return;
     setK(k, el.value);
+    document.getElementById('src-life').style.display  = el.value==='life'  ? 'block' : 'none';
     document.getElementById('src-noise').style.display = el.value==='noise' ? 'block' : 'none';
     document.getElementById('src-video').style.display = el.value==='video' ? 'block' : 'none';
   }
@@ -1145,10 +1431,16 @@ panelBody.addEventListener('input', e => {
     const head = panelBody.querySelector(`[data-toggle="${em[1]}"]`);
     if (head) head.classList.toggle('off', !el.checked);
   }
+  // trail toggle dims the length slider
+  if (k === 'trail.on') {
+    const w = document.getElementById('trail-amt-wrap');
+    if (w) w.style.opacity = el.checked ? '1' : '.4';
+  }
 });
 
-/* — clicks: mode chips, layer collapse — */
+/* — clicks: reseed, mode chips, layer collapse — */
 panelBody.addEventListener('click', e => {
+  if (e.target.id === 'life-reseed') { lifeReseed = true; return; }
   const chip = e.target.closest('.chip');
   if (chip) {
     const i = chip.dataset.li, mode = chip.dataset.mode;
